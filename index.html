@@ -1,0 +1,2322 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="theme-color" content="#090501">
+<title>ARCADE VAULT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Kufi+Arabic:wght@300;400;600;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   BASE TOKENS
+═══════════════════════════════════════════ */
+:root{
+  --bg0:#090501;--bg1:#110803;--bg2:#190c04;--bg3:#211306;
+  --line:rgba(255,130,30,.08);--line2:rgba(255,130,30,.15);
+  --tx0:#fff8f0;--tx1:#b07040;--tx2:#5a3520;
+  --acc:#ff6b00;--acc2:#ffaa00;--ok:#3cffa0;--warn:#ffc940;--err:#ff4060;
+  --mono:'Space Mono',monospace;
+  --arab:'Noto Kufi Arabic',system-ui,sans-serif;
+  --orb:'Orbitron','Space Mono',monospace;
+  --r:12px;
+  /* Console theme vars (overridden per-console) */
+  --con-a:#ff6b00;--con-b:#ffaa00;--con-bg:#090501;
+  --con-pat:none;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg0);color:var(--tx0);font-family:var(--arab);font-size:14px}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit}
+input,select{font-family:inherit;color:inherit;background:none;border:none;outline:none}
+img{display:block}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:4px}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 50% at 75% 0%,rgba(255,107,0,.07),transparent 60%),
+             radial-gradient(ellipse 50% 60% at 10% 100%,rgba(255,170,0,.04),transparent 55%)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes slideDown{from{transform:translateY(0)}to{transform:translateY(100%)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
+@keyframes glowPulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.02)}}
+@keyframes loadBar{0%{width:0;margin-right:100%}50%{width:60%;margin-right:20%}100%{width:0;margin-right:0}}
+
+/* ═══════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════ */
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── TOPBAR ── */
+#topbar{
+  position:sticky;top:0;z-index:80;height:54px;
+  background:rgba(9,5,1,.94);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;padding:0 14px;
+}
+#logo{font-family:var(--orb);font-size:14px;font-weight:700;letter-spacing:2px;
+  color:var(--tx0);white-space:nowrap;display:flex;align-items:center;gap:8px;cursor:pointer}
+#logo-dot{width:7px;height:7px;border-radius:50%;background:var(--acc);
+  box-shadow:0 0 12px var(--acc);animation:pulse 2s ease infinite}
+#search-wrap{flex:1;max-width:300px;position:relative}
+#search{width:100%;height:32px;background:var(--bg2);border:1px solid var(--line);
+  border-radius:8px;padding:0 10px 0 32px;font-size:12px;color:var(--tx0);transition:border-color .2s}
+#search:focus{border-color:var(--acc);box-shadow:0 0 0 2px rgba(255,107,0,.12)}
+#search::placeholder{color:var(--tx2)}
+#search-wrap::before{content:'⌕';position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  color:var(--tx2);font-size:15px;pointer-events:none}
+#topbar-right{margin-right:auto;display:flex;align-items:center;gap:6px}
+.stat-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+  background:var(--bg2);border:1px solid var(--line);font-family:var(--mono);font-size:10px;color:var(--tx2)}
+.stat-pill b{color:var(--tx0);font-weight:700}
+.icon-btn{width:32px;height:32px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);
+  color:var(--tx1);font-size:14px;display:grid;place-items:center;transition:all .2s;position:relative}
+.icon-btn:hover{border-color:var(--acc);color:var(--tx0)}
+.icon-btn.spin{animation:spin .7s linear infinite}
+#folder-btn{background:rgba(255,107,0,.1);border-color:rgba(255,107,0,.3);color:var(--acc)}
+#folder-btn:hover{background:rgba(255,107,0,.22)}
+.icon-badge{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;background:var(--ok);
+  color:#000;border-radius:8px;font-family:var(--mono);font-size:9px;font-weight:700;
+  display:none;place-items:center;padding:0 3px}
+.icon-badge.on{display:grid}
+@media(max-width:480px){.stat-pill{display:none}}
+
+/* ── NAV ── */
+#nav{display:flex;overflow-x:auto;scrollbar-width:none;background:var(--bg1);
+  border-bottom:1px solid var(--line);position:sticky;top:54px;z-index:79}
+#nav::-webkit-scrollbar{display:none}
+.tab{padding:0 16px;height:42px;font-size:12px;font-weight:600;color:var(--tx2);
+  white-space:nowrap;border-bottom:2px solid transparent;transition:all .18s;
+  display:flex;align-items:center;gap:6px}
+.tab.on{color:var(--tx0);border-bottom-color:var(--acc);text-shadow:0 0 12px rgba(255,107,0,.4)}
+.tab:hover:not(.on){color:var(--tx1)}
+.tab-cnt{background:var(--acc);color:#fff;border-radius:20px;padding:1px 6px;
+  font-size:9px;font-family:var(--mono)}
+
+/* ── SCREENS ── */
+.screen{display:none;padding:20px 16px 80px;max-width:1440px;margin:0 auto;width:100%}
+.screen.on{display:block;animation:fadeUp .22s ease}
+
+/* ── STATUS ── */
+#status-bar{padding:9px 16px;background:var(--bg1);border-bottom:1px solid var(--line);
+  font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:8px}
+#status-bar.hide{display:none}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--tx2);flex-shrink:0}
+.sdot.ok{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.sdot.warn{background:var(--warn)}
+.sdot.err{background:var(--err)}
+.sdot.spin{background:var(--acc);animation:pulse .6s ease infinite}
+#status-txt{flex:1}
+#status-act{font-family:var(--mono);font-size:10px;color:var(--acc);cursor:pointer;
+  padding:2px 8px;border:1px solid var(--acc);border-radius:4px}
+
+/* ── SECTION HEADER ── */
+.sec{margin-bottom:24px}
+.sec-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-title{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;color:var(--tx2);text-transform:uppercase}
+.sec-line{flex:1;height:1px;background:var(--line)}
+.sec-cnt{font-family:var(--mono);font-size:10px;color:var(--tx2)}
+
+/* ── CHIPS ── */
+.chips{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+  padding-bottom:2px;margin-bottom:16px}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:4px 14px;border-radius:20px;font-size:11px;border:1px solid var(--line);
+  color:var(--tx2);white-space:nowrap;transition:all .15s;cursor:pointer}
+.chip.on,.chip:hover{border-color:var(--acc);color:var(--tx0);background:rgba(255,107,0,.1)}
+
+/* ═══════════════════════════════════════════
+   GAME GRID & CARDS
+═══════════════════════════════════════════ */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:14px}
+@media(min-width:800px){.grid{grid-template-columns:repeat(auto-fill,minmax(175px,1fr))}}
+@media(max-width:380px){.grid{grid-template-columns:repeat(2,1fr);gap:10px}}
+
+.gcard{
+  --c:var(--acc);
+  border-radius:var(--r);overflow:hidden;cursor:pointer;
+  background:var(--bg1);border:1px solid var(--line);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1),border-color .2s,box-shadow .25s;
+  position:relative;
+}
+.gcard:hover{
+  transform:translateY(-6px) scale(1.02);
+  border-color:var(--c);
+  box-shadow:0 16px 48px rgba(0,0,0,.6),0 0 28px color-mix(in srgb,var(--c) 18%,transparent);
+}
+.gcard:active{transform:scale(.96)!important}
+
+/* Poster area */
+.gcard-art{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--bg2)}
+.gcard-canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s,opacity .3s}
+.gcard-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s,transform .35s}
+.gcard-img.loaded{opacity:1}
+.gcard:hover .gcard-canvas,.gcard:hover .gcard-img{transform:scale(1.07)}
+
+/* Loading shimmer on poster */
+.gcard-art::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.04) 50%,transparent 100%);
+  background-size:200% 100%;animation:shimmer 2s ease infinite;pointer-events:none}
+.gcard-img.loaded ~ .gcard-art::after,.gcard-art.art-done::after{display:none}
+
+/* Overlay on hover */
+.gcard-hover{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.5) 60%,transparent 100%);
+  opacity:0;transition:opacity .2s}
+.gcard:hover .gcard-hover{opacity:1}
+.play-circle{width:54px;height:54px;border-radius:50%;
+  background:var(--c);border:3px solid rgba(255,255,255,.25);
+  display:grid;place-items:center;font-size:20px;
+  box-shadow:0 0 32px color-mix(in srgb,var(--c) 60%,transparent);
+  transition:transform .15s;animation:glowPulse 2s ease infinite}
+.gcard:hover .play-circle{transform:scale(1.1)}
+.hover-hint{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.7)}
+
+/* Badges on card */
+.sys-badge{position:absolute;top:7px;left:7px;font-family:var(--mono);font-size:8px;
+  padding:2px 7px;border-radius:5px;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);
+  border:1px solid color-mix(in srgb,var(--c) 60%,transparent);color:var(--c);letter-spacing:.5px}
+.fav-btn{position:absolute;top:7px;right:7px;width:27px;height:27px;border-radius:50%;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(8px);border:1px solid var(--line2);
+  font-size:12px;display:grid;place-items:center;opacity:0;transition:opacity .15s,color .15s;z-index:2}
+.gcard:hover .fav-btn,.fav-btn.on{opacity:1}
+.fav-btn.on{color:#ff4466;border-color:rgba(255,68,102,.5)}
+.src-badge{position:absolute;bottom:7px;left:7px;font-family:var(--mono);font-size:8px;
+  padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.85);backdrop-filter:blur(6px)}
+.src-badge.local{color:var(--ok);border:1px solid rgba(60,255,160,.3)}
+.src-badge.zip{color:var(--warn);border:1px solid rgba(255,201,64,.3)}
+.src-badge.sz{color:var(--acc2);border:1px solid rgba(255,170,0,.3)}
+.src-badge.cloud{color:var(--acc);border:1px solid rgba(255,107,0,.3)}
+
+/* Card info */
+.gcard-info{padding:9px 11px 11px}
+.gcard-name{font-size:11px;font-weight:700;color:var(--tx0);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;line-height:1.3}
+.gcard-meta{display:flex;justify-content:space-between;align-items:center}
+.gcard-sys{font-family:var(--mono);font-size:9px;color:var(--c)}
+.gcard-yr{font-size:9px;color:var(--tx2)}
+
+/* ═══════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════ */
+.empty{text-align:center;padding:60px 20px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.empty-ico{font-size:52px;opacity:.12}
+.empty-title{font-family:var(--mono);font-size:13px;color:var(--tx1)}
+.empty-sub{font-size:12px;color:var(--tx2);max-width:280px;line-height:1.8}
+.pick-btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px;border-radius:10px;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:12px;font-weight:700;
+  border:none;cursor:pointer;transition:all .2s}
+.pick-btn:hover{transform:scale(1.04);box-shadow:0 8px 24px rgba(255,107,0,.4)}
+.pick-btn.sec{background:var(--bg2);border:1px solid var(--line2);color:var(--tx0)}
+.pick-btn.sec:hover{border-color:var(--acc);box-shadow:none}
+
+/* ═══════════════════════════════════════════
+   WELCOME SCREEN
+═══════════════════════════════════════════ */
+#welcome{display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:48px 20px 60px;gap:16px}
+.welcome-ico{font-size:72px;animation:float 3s ease-in-out infinite}
+.welcome-title{font-family:var(--orb);font-size:clamp(20px,5vw,38px);font-weight:900;
+  background:linear-gradient(135deg,#fff 20%,var(--acc) 55%,var(--acc2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1}
+.welcome-sub{font-size:13px;color:var(--tx1);max-width:340px;line-height:1.8}
+.welcome-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.fmt-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:400px}
+.fmt-tag{padding:3px 10px;border-radius:20px;font-family:var(--mono);font-size:9px;
+  border:1px solid var(--line2);color:var(--tx2)}
+
+/* ═══════════════════════════════════════════
+   SYSTEMS OVERVIEW
+═══════════════════════════════════════════ */
+.sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.sys-card{
+  --c:#ff6b00;
+  border-radius:var(--r);overflow:hidden;cursor:pointer;position:relative;
+  background:var(--bg1);border:1px solid var(--line);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1),border-color .2s,box-shadow .22s;
+  padding:0;
+}
+.sys-card:hover{transform:translateY(-4px) scale(1.01);border-color:var(--c);
+  box-shadow:0 12px 36px rgba(0,0,0,.5),0 0 24px color-mix(in srgb,var(--c) 20%,transparent)}
+.sys-card-bg{height:90px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--c) 12%,#07070d),color-mix(in srgb,var(--c) 6%,#07070d))}
+/* Era pattern on card BG */
+.sys-card-bg::before{content:'';position:absolute;inset:0;opacity:.12;
+  background:var(--con-pat,repeating-linear-gradient(45deg,var(--c) 0,var(--c) 1px,transparent 0,transparent 50%) 0 0 / 12px 12px)}
+.sys-card-ico{position:absolute;bottom:-18px;left:16px;width:52px;height:52px;border-radius:12px;
+  background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 70%,#000));
+  display:grid;place-items:center;font-size:26px;
+  box-shadow:0 4px 20px color-mix(in srgb,var(--c) 50%,transparent),0 0 0 3px rgba(255,255,255,.07);
+  border:2px solid rgba(255,255,255,.1)}
+.sys-card-badge{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:8px;
+  padding:3px 8px;border-radius:5px;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  color:var(--c);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+.sys-card-body{padding:24px 16px 16px}
+.sys-card-name{font-family:var(--orb);font-size:13px;font-weight:700;color:var(--tx0);margin-bottom:2px}
+.sys-card-full{font-size:10px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
+.sys-card-footer{display:flex;align-items:center;justify-content:space-between}
+.sys-card-cnt{font-family:var(--mono);font-size:11px;color:var(--c);font-weight:700}
+.perf-pill{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:4px}
+.p1{background:rgba(60,255,160,.1);color:#3cffa0;border:1px solid rgba(60,255,160,.2)}
+.p2{background:rgba(255,201,64,.1);color:#ffc940;border:1px solid rgba(255,201,64,.2)}
+.p3{background:rgba(255,120,40,.1);color:#ff7828;border:1px solid rgba(255,120,40,.2)}
+.p4{background:rgba(255,64,96,.1);color:#ff4060;border:1px solid rgba(255,64,96,.2)}
+
+/* ═══════════════════════════════════════════
+   CONSOLE DETAIL SCREEN
+═══════════════════════════════════════════ */
+#screen-console{display:none;padding:0;max-width:100%;overflow:hidden}
+#screen-console.on{display:block;animation:fadeUp .25s ease}
+
+.con-hero{
+  position:relative;overflow:hidden;
+  background:var(--con-bg,var(--bg0));background-size:cover;background-position:center;
+  padding:32px 20px 48px;
+  min-height:220px;display:flex;align-items:flex-end;
+}
+/* Animated pattern layer */
+.con-hero::before{
+  content:'';position:absolute;inset:0;
+  background:var(--con-pat,none);
+  opacity:.15;pointer-events:none;
+  animation:conPatAnim 30s linear infinite;
+}
+/* Glow blob */
+.con-hero::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 100% at 30% 50%,
+    color-mix(in srgb,var(--con-a) 22%,transparent),transparent 65%);
+}
+@keyframes conPatAnim{from{background-position:0 0}to{background-position:100px 100px}}
+.con-hero-back{position:absolute;top:14px;left:16px;z-index:5;
+  width:36px;height:36px;border-radius:9px;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.12);color:#fff;
+  display:grid;place-items:center;font-size:18px;cursor:pointer;transition:all .15s}
+.con-hero-back:hover{background:rgba(255,255,255,.12)}
+.con-hero-content{position:relative;z-index:3;max-width:1440px;margin:0 auto;width:100%}
+.con-era{font-family:var(--mono);font-size:9px;letter-spacing:3px;
+  color:color-mix(in srgb,var(--con-a) 80%,#fff);margin-bottom:6px;text-transform:uppercase}
+.con-name{font-family:var(--orb);font-size:clamp(28px,8vw,64px);font-weight:900;line-height:.9;
+  color:#fff;text-shadow:0 0 60px color-mix(in srgb,var(--con-a) 80%,transparent);
+  margin-bottom:8px}
+.con-tagline{font-size:13px;color:rgba(255,255,255,.55);margin-bottom:18px;max-width:420px}
+.con-stats{display:flex;gap:24px;flex-wrap:wrap}
+.con-stat{text-align:center}
+.con-stat-val{font-family:var(--orb);font-size:26px;font-weight:700;
+  color:var(--con-a);text-shadow:0 0 20px color-mix(in srgb,var(--con-a) 70%,transparent)}
+.con-stat-lbl{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:rgba(255,255,255,.4)}
+/* Console icon in hero */
+.con-big-ico{position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  font-size:clamp(80px,15vw,160px);opacity:.08;pointer-events:none;z-index:1;
+  filter:drop-shadow(0 0 30px var(--con-a))}
+@media(min-width:600px){
+  .con-big-ico{left:auto;right:5%;opacity:.12}
+}
+
+.con-body{padding:24px 16px 80px;max-width:1440px;margin:0 auto}
+.con-filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.con-search{height:34px;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;
+  padding:0 12px;font-size:12px;color:var(--tx0);min-width:180px;transition:border-color .2s}
+.con-search:focus{border-color:var(--con-a,var(--acc))}
+.con-search::placeholder{color:var(--tx2)}
+
+/* ═══════════════════════════════════════════
+   GAME DETAIL PAGE
+═══════════════════════════════════════════ */
+#game-detail{
+  position:fixed;inset:0;z-index:260;
+  transform:translateY(100%);transition:transform .38s cubic-bezier(.25,.46,.45,.94);
+  overflow:hidden;
+}
+#game-detail.open{transform:translateY(0)}
+.gd-bg{position:absolute;inset:0;background:var(--bg0)}
+.gd-blur-art{position:absolute;inset:0;background-size:cover;background-position:center;
+  filter:blur(40px) saturate(1.4);opacity:.25;transform:scale(1.1)}
+.gd-overlay{position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(7,7,13,.6),rgba(7,7,13,.92) 70%,var(--bg0))}
+.gd-inner{position:relative;z-index:2;height:100%;overflow-y:auto;
+  display:flex;flex-direction:column;padding:0}
+.gd-inner::-webkit-scrollbar{display:none}
+/* Top bar */
+.gd-bar{
+  display:flex;align-items:center;gap:10px;padding:14px 16px;
+  position:sticky;top:0;z-index:3;
+  background:linear-gradient(to bottom,rgba(7,7,13,.9),transparent);
+  backdrop-filter:blur(2px);
+}
+.gd-back{width:36px;height:36px;border-radius:10px;background:rgba(0,0,0,.6);
+  backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);
+  color:#fff;display:grid;place-items:center;font-size:18px;cursor:pointer;transition:all .15s}
+.gd-back:hover{background:rgba(255,255,255,.12)}
+.gd-bar-title{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.5);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+/* Content layout */
+.gd-content{
+  display:grid;grid-template-columns:1fr;gap:0;
+  padding:0 0 40px;
+}
+@media(min-width:640px){
+  .gd-content{grid-template-columns:280px 1fr;align-items:start;padding:20px 20px 60px;gap:32px}
+}
+/* Art side */
+.gd-art-col{display:flex;justify-content:center;padding:20px 20px 0;position:relative}
+@media(min-width:640px){.gd-art-col{padding:0;justify-content:flex-end}}
+.gd-art-frame{
+  width:min(220px,80vw);flex-shrink:0;
+  aspect-ratio:3/4;border-radius:16px;overflow:hidden;position:relative;
+  box-shadow:0 32px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.08),
+             0 0 60px color-mix(in srgb,var(--gd-c,var(--acc)) 25%,transparent);
+}
+.gd-art-img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s;position:absolute;inset:0}
+.gd-art-img.loaded{opacity:1}
+.gd-art-canvas{width:100%;height:100%;display:block}
+/* Info side */
+.gd-info-col{padding:20px 16px;display:flex;flex-direction:column;gap:0}
+@media(min-width:640px){.gd-info-col{padding:0;justify-content:center}}
+.gd-sys-line{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.gd-sys-icon{font-size:22px}
+.gd-sys-name{font-family:var(--mono);font-size:11px;letter-spacing:2px;
+  color:var(--gd-c,var(--acc));text-transform:uppercase}
+.gd-title{font-family:var(--arab);font-size:clamp(20px,5vw,36px);font-weight:900;
+  color:#fff;line-height:1.2;margin-bottom:16px;
+  text-shadow:0 2px 20px rgba(0,0,0,.6)}
+.gd-badges{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
+.gd-badge{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;
+  font-size:11px;font-weight:600;border:1px solid;backdrop-filter:blur(8px)}
+.gd-badge-src-local{background:rgba(60,255,160,.1);border-color:rgba(60,255,160,.3);color:var(--ok)}
+.gd-badge-src-cloud{background:rgba(255,107,0,.1);border-color:rgba(255,107,0,.3);color:var(--acc)}
+.gd-badge-src-zip{background:rgba(255,201,64,.1);border-color:rgba(255,201,64,.3);color:var(--warn)}
+.gd-badge-src-sz{background:rgba(255,170,0,.1);border-color:rgba(255,170,0,.3);color:var(--acc2)}
+.gd-badge-sys{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.gd-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.gd-meta-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+  border-radius:10px;padding:12px 14px}
+.gd-meta-lbl{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;
+  color:rgba(255,255,255,.35);margin-bottom:4px;text-transform:uppercase}
+.gd-meta-val{font-size:13px;font-weight:600;color:#fff}
+/* Play button */
+.gd-play-btn{
+  width:100%;height:58px;border-radius:14px;
+  background:linear-gradient(135deg,var(--gd-c,var(--acc)),color-mix(in srgb,var(--gd-c,var(--acc)) 70%,var(--acc2)));
+  color:#fff;font-family:var(--orb);font-size:16px;font-weight:700;
+  letter-spacing:2px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  box-shadow:0 8px 32px color-mix(in srgb,var(--gd-c,var(--acc)) 50%,transparent);
+  transition:all .2s;position:relative;overflow:hidden;
+  margin-bottom:12px;
+}
+.gd-play-btn::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);pointer-events:none}
+.gd-play-btn:hover{transform:scale(1.02);box-shadow:0 12px 40px color-mix(in srgb,var(--gd-c,var(--acc)) 65%,transparent)}
+.gd-play-btn:active{transform:scale(.98)}
+.gd-play-ico{font-size:22px}
+
+/* ═══════════════════════════════════════════
+   DROP OVERLAY
+═══════════════════════════════════════════ */
+#drop-overlay{position:fixed;inset:0;z-index:500;background:rgba(7,7,13,.92);
+  backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center}
+#drop-overlay.on{display:flex}
+#drop-box{width:min(420px,90vw);border:2px dashed var(--acc);border-radius:20px;
+  padding:50px 40px;text-align:center;background:rgba(255,107,0,.06);
+  display:flex;flex-direction:column;align-items:center;gap:14px}
+#drop-box .d-ico{font-size:56px;animation:float 2s ease-in-out infinite}
+#drop-box h3{font-family:var(--orb);font-size:18px;color:var(--tx0)}
+
+/* ═══════════════════════════════════════════
+   SCAN PROGRESS
+═══════════════════════════════════════════ */
+#scan-prog{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:400;
+  background:var(--bg2);border:1px solid var(--acc);border-radius:14px;
+  padding:14px 20px;min-width:280px;max-width:90vw;
+  display:none;flex-direction:column;gap:8px;
+  box-shadow:0 12px 40px rgba(0,0,0,.7),0 0 24px rgba(255,107,0,.2)}
+#scan-prog.on{display:flex}
+#sp-title{font-family:var(--mono);font-size:11px;color:var(--tx0)}
+#sp-file{font-size:11px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sp-bar{height:3px;background:var(--bg3);border-radius:3px;overflow:hidden}
+#sp-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--ok));width:0;transition:width .3s}
+
+/* ═══════════════════════════════════════════
+   FOLDER MENU
+═══════════════════════════════════════════ */
+#folder-menu{
+  position:fixed;top:62px;left:14px;z-index:150;min-width:220px;
+  background:var(--bg2);border:1px solid var(--line2);border-radius:14px;
+  padding:8px;display:none;
+  box-shadow:0 16px 48px rgba(0,0,0,.7),0 0 24px rgba(255,107,0,.1);
+}
+.fm-item{width:100%;padding:10px 12px;border-radius:8px;text-align:right;font-size:12px;
+  font-weight:600;color:var(--tx0);display:flex;align-items:center;gap:8px;
+  transition:background .15s;cursor:pointer}
+.fm-item:hover{background:var(--bg3)}
+.fm-item.danger{color:var(--err)}
+.fm-sep{height:1px;background:var(--line);margin:5px 0}
+
+/* ═══════════════════════════════════════════
+   SETTINGS PANEL
+═══════════════════════════════════════════ */
+#settings-panel{position:fixed;inset:0;z-index:200;background:var(--bg0);
+  overflow-y:auto;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+#settings-panel.open{transform:none}
+#settings-panel::-webkit-scrollbar{display:none}
+.stg-top{position:sticky;top:0;height:52px;background:rgba(7,7,13,.96);
+  backdrop-filter:blur(20px);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;padding:0 16px;z-index:1}
+.stg-back{width:32px;height:32px;border-radius:7px;background:var(--bg2);
+  border:1px solid var(--line);color:var(--tx1);font-size:18px;display:grid;place-items:center;transition:all .15s}
+.stg-back:hover{border-color:var(--acc);color:var(--tx0)}
+.stg-heading{font-family:var(--orb);font-size:12px;letter-spacing:2px;color:var(--tx1)}
+.stg-body{padding:20px 16px 80px;max-width:700px;margin:0 auto}
+.stg-sec{margin-bottom:28px}
+.stg-sec-title{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;color:var(--tx2);
+  text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.stg-sec-title::after{content:'';flex:1;height:1px;background:var(--line)}
+.stg-group{background:var(--bg1);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.stg-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line)}
+.stg-row:last-child{border-bottom:none}
+.stg-ico{width:36px;height:36px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:17px;flex-shrink:0}
+.stg-info{flex:1;min-width:0}
+.stg-info-title{font-size:13px;font-weight:600;color:var(--tx0)}
+.stg-info-sub{font-size:11px;color:var(--tx2);margin-top:1px}
+.stg-ctrl{flex-shrink:0}
+.toggle{width:38px;height:22px;background:var(--bg3);border-radius:11px;position:relative;
+  cursor:pointer;transition:background .2s;border:1px solid var(--line2)}
+.toggle.on{background:var(--acc);border-color:var(--acc)}
+.toggle::after{content:'';position:absolute;top:2px;right:2px;width:16px;height:16px;
+  border-radius:50%;background:#fff;transition:transform .2s}
+.toggle.on::after{transform:translateX(-16px)}
+.stg-select{height:30px;padding:0 8px;border-radius:6px;background:var(--bg2);
+  border:1px solid var(--line2);font-size:12px;color:var(--tx0);cursor:pointer;min-width:120px}
+.stg-select option{background:var(--bg2)}
+.stg-input{height:30px;padding:0 10px;border-radius:6px;background:var(--bg2);
+  border:1px solid var(--line2);font-size:12px;color:var(--tx0);width:100%;transition:border-color .2s}
+.stg-input:focus{border-color:var(--acc)}
+.stg-input::placeholder{color:var(--tx2)}
+.stg-input-row{display:flex;gap:6px;padding:0 15px 13px;width:100%}
+.stg-input-row .stg-input{flex:1}
+.stg-btn{height:30px;padding:0 14px;border-radius:6px;background:rgba(255,107,0,.15);
+  border:1px solid rgba(255,107,0,.35);color:#ff9844;font-size:12px;font-weight:600;
+  transition:all .15s;white-space:nowrap}
+.stg-btn:hover{background:rgba(255,107,0,.3)}
+.stg-btn.danger{background:rgba(255,64,96,.1);border-color:rgba(255,64,96,.3);color:#ff8899}
+.shader-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
+.shader-opt{padding:8px 6px;border-radius:8px;border:1px solid var(--line);background:var(--bg2);
+  cursor:pointer;text-align:center;font-size:11px;color:var(--tx2);transition:all .15s}
+.shader-opt .sh-ico{font-size:20px;margin-bottom:4px}
+.shader-opt:hover,.shader-opt.on{border-color:var(--acc);color:var(--tx0);background:rgba(255,107,0,.1)}
+.sh-mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.sh-mini{padding:5px 3px;border-radius:6px;border:1px solid var(--line);background:var(--bg2);
+  font-size:10px;color:var(--tx2);text-align:center;transition:all .15s;cursor:pointer}
+.sh-mini.on{border-color:var(--acc);color:var(--acc);background:rgba(255,107,0,.1)}
+
+/* ═══════════════════════════════════════════
+   EMULATOR
+═══════════════════════════════════════════ */
+#emu{position:fixed;inset:0;z-index:300;background:#000;display:none;flex-direction:column}
+#emu.on{display:flex}
+#emu-bar{height:46px;flex-shrink:0;background:rgba(9,5,1,.98);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:7px;padding:0 10px}
+#emu-back-btn{width:34px;height:34px;border-radius:7px;background:var(--bg2);border:1px solid var(--line2);
+  color:var(--tx0);font-size:18px;display:grid;place-items:center;flex-shrink:0;transition:all .15s}
+#emu-back-btn:hover{border-color:var(--acc)}
+#emu-info{flex:1;text-align:center;min-width:0}
+#emu-title{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--tx0);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#emu-sys-lbl{font-size:9px;color:var(--tx2);letter-spacing:2px}
+.emu-as{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--tx2);flex-shrink:0}
+.emu-as.on{color:var(--ok)}
+.emu-as-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.emu-as.on .emu-as-dot{animation:pulse .9s ease infinite}
+.emu-btns{display:flex;gap:4px}
+.emu-btn{height:28px;padding:0 10px;border-radius:6px;background:var(--bg2);border:1px solid var(--line2);
+  color:var(--tx0);font-size:11px;font-weight:600;transition:all .15s;white-space:nowrap}
+.emu-btn:hover{border-color:var(--acc)}
+.emu-btn.saved{background:rgba(60,255,160,.1);border-color:rgba(60,255,160,.3);color:var(--ok)}
+#emu-content{flex:1;position:relative;overflow:hidden;background:#000}
+#emu-frame{width:100%;height:100%;border:none}
+#emu-load{position:absolute;inset:0;z-index:10;background:#000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;transition:opacity .4s}
+#emu-load.gone{opacity:0;pointer-events:none}
+.lp-wrap{width:96px;height:132px;border-radius:10px;overflow:hidden;
+  box-shadow:0 16px 48px rgba(0,0,0,.9),0 0 40px rgba(255,107,0,.3);
+  animation:float 2s ease-in-out infinite}
+.lp-wrap canvas,.lp-wrap img{width:100%;height:100%;display:block;object-fit:cover}
+#lp-title{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--tx0);text-align:center;max-width:240px}
+#lp-sys{font-size:9px;color:var(--tx2);letter-spacing:2.5px;text-align:center}
+#lp-status{font-family:var(--mono);font-size:10px;color:var(--acc);min-height:14px;text-align:center}
+.lp-track{width:180px;height:2px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.lp-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));animation:loadBar 1.8s ease infinite;width:60%}
+#emu-err{position:absolute;inset:0;z-index:11;background:rgba(7,7,13,.97);display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px}
+#emu-err.on{display:flex}
+.err-title{font-family:var(--mono);font-size:13px;color:var(--err)}
+.err-box{background:rgba(255,64,96,.06);border:1px solid rgba(255,64,96,.2);border-radius:10px;
+  padding:14px 18px;max-width:340px;width:100%}
+.err-box ul{padding-right:14px;font-size:12px;color:#ff9aaa;line-height:2.2}
+.err-close{height:34px;padding:0 20px;border-radius:8px;background:var(--bg2);
+  border:1px solid var(--line2);font-size:12px;font-weight:600;transition:all .15s}
+.err-close:hover{border-color:var(--acc)}
+/* Quick panel */
+#qp{position:absolute;top:0;right:0;bottom:0;width:260px;background:rgba(9,5,1,.94);
+  backdrop-filter:blur(28px);border-left:1px solid var(--line);z-index:12;
+  transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+#qp.open{transform:none}
+.qp-head{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;padding:0 14px;flex-shrink:0}
+.qp-lbl{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--tx1)}
+.qp-x{width:26px;height:26px;border-radius:6px;background:var(--bg2);border:1px solid var(--line);
+  font-size:13px;display:grid;place-items:center;color:var(--tx1);transition:all .15s}
+.qp-x:hover{border-color:var(--acc)}
+.qp-body{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:6px;scrollbar-width:none}
+.qp-body::-webkit-scrollbar{display:none}
+.qp-sec{font-family:var(--mono);font-size:8px;letter-spacing:2px;color:var(--tx2);margin:4px 0 2px}
+.qp-btn{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;
+  background:var(--bg2);border:1px solid var(--line);transition:all .15s;
+  text-align:right;font-size:12px;font-weight:600;width:100%}
+.qp-btn:hover{border-color:var(--acc);background:rgba(255,107,0,.08)}
+.qp-btn.danger{color:var(--err)}
+.qp-btn.danger:hover{border-color:rgba(255,64,96,.4);background:rgba(255,64,96,.06)}
+.qp-ico{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-size:15px;flex-shrink:0}
+.qp-slots{display:flex;gap:4px}
+.qp-slot{flex:1;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--bg2);
+  font-family:var(--mono);font-size:9px;color:var(--tx2);transition:all .15s}
+.qp-slot.on,.qp-slot:hover{border-color:var(--acc);color:var(--acc);background:rgba(255,107,0,.08)}
+#qp-toggle{position:absolute;top:50%;right:0;transform:translateY(-50%);
+  width:20px;height:48px;background:rgba(255,107,0,.2);border:1px solid rgba(255,107,0,.35);
+  border-radius:6px 0 0 6px;display:grid;place-items:center;font-size:10px;color:var(--tx0);z-index:13;cursor:pointer}
+/* Gamepad */
+#gp-ov{position:absolute;bottom:0;left:0;right:0;z-index:5;pointer-events:none;display:none;padding:6px 10px 8px}
+#gp-ov.on{display:flex;align-items:flex-end;justify-content:space-between}
+.gp-dpad{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px);gap:2px;pointer-events:all}
+.gp-d{width:40px;height:40px;border-radius:7px;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);
+  border:1px solid rgba(255,255,255,.1);color:var(--tx0);font-size:15px;display:grid;place-items:center;
+  cursor:pointer;user-select:none;touch-action:manipulation}
+.gp-d:active,.gp-d.p{background:rgba(255,255,255,.2)}
+.gp-mid-row{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:all}
+.gp-mid-btns{display:flex;gap:8px}
+.gp-mid-b{padding:5px 11px;border-radius:18px;background:rgba(0,0,0,.7);
+  backdrop-filter:blur(5px);border:1px solid rgba(255,255,255,.1);color:var(--tx0);
+  font-size:8px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;font-family:var(--mono)}
+.gp-mid-b:active{background:rgba(255,255,255,.2)}
+.gp-abxy{display:grid;grid-template-columns:repeat(2,44px);grid-template-rows:repeat(2,44px);gap:4px;pointer-events:all}
+.gp-b{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  user-select:none;touch-action:manipulation;font-family:var(--mono);font-size:12px;font-weight:700;
+  border:2px solid rgba(255,255,255,.15);backdrop-filter:blur(5px)}
+.gp-b:active,.gp-b.p{filter:brightness(1.5)}
+.gp-a{background:rgba(100,200,80,.6);color:#9fe880}
+.gp-b2{background:rgba(200,60,60,.6);color:#f98080}
+.gp-x{background:rgba(80,120,220,.6);color:#99b8ff}
+.gp-y{background:rgba(220,180,60,.6);color:#ffe080}
+/* CRT Shaders */
+.crt-scan::after{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.15) 2px,rgba(0,0,0,.15) 4px);
+  pointer-events:none;z-index:20}
+.crt-crt{filter:brightness(1.1) contrast(1.06)}
+.crt-crt::after{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(0,0,0,.25) 1px,rgba(0,0,0,.25) 3px);
+  pointer-events:none;z-index:20}
+.crt-warm{filter:sepia(.25) brightness(1.06)}
+.crt-neon{filter:saturate(1.7) brightness(1.1) hue-rotate(-5deg)}
+
+/* ── TOAST & GP BAR ── */
+#toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,20px);z-index:999;
+  padding:9px 20px;border-radius:10px;background:rgba(20,20,32,.97);border:1px solid var(--line2);
+  font-size:13px;font-weight:600;color:var(--tx0);opacity:0;transition:all .3s;
+  pointer-events:none;white-space:nowrap;backdrop-filter:blur(16px)}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#gp-bar{position:fixed;bottom:62px;left:50%;transform:translateX(-50%);z-index:999;
+  padding:7px 16px;border-radius:8px;background:rgba(20,20,32,.95);
+  border:1px solid var(--line2);font-size:12px;color:var(--ok);opacity:0;transition:opacity .3s;pointer-events:none}
+#gp-bar.on{opacity:1}
+
+/* ── SITE LOADER ── */
+#siteload{position:fixed;inset:0;z-index:999;background:var(--bg0);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .5s}
+#siteload.done{opacity:0;pointer-events:none}
+#sl-logo{font-family:var(--orb);font-size:clamp(20px,6vw,44px);font-weight:900;letter-spacing:3px;
+  background:linear-gradient(135deg,#fff,var(--acc),var(--acc2));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+#sl-bar{width:200px;height:2px;background:var(--bg3);border-radius:2px;overflow:hidden}
+#sl-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));width:0;transition:width .4s}
+#sl-txt{font-family:var(--mono);font-size:9px;letter-spacing:3px;color:var(--tx2)}
+
+/* ═══════════════════════════════════════════
+   CONSOLE SKINS SYSTEM
+═══════════════════════════════════════════ */
+.con-skin-btn{
+  position:absolute;top:14px;right:16px;z-index:5;
+  height:30px;padding:0 12px;border-radius:8px;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.18);color:#fff;
+  font-size:11px;font-weight:600;letter-spacing:.5px;
+  display:flex;align-items:center;gap:5px;cursor:pointer;transition:all .15s;
+}
+.con-skin-btn:hover{background:rgba(255,107,0,.3);border-color:rgba(255,107,0,.6)}
+
+#skin-modal{
+  position:fixed;inset:0;z-index:350;
+  background:rgba(0,0,0,.85);backdrop-filter:blur(20px);
+  display:none;align-items:flex-end;justify-content:center;
+}
+#skin-modal.on{display:flex}
+.skin-sheet{
+  width:100%;max-width:520px;
+  background:var(--bg1);border:1px solid var(--line2);
+  border-radius:20px 20px 0 0;padding:20px 16px 48px;
+  max-height:80vh;overflow-y:auto;
+}
+.skin-sheet::-webkit-scrollbar{display:none}
+.skin-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.skin-sheet-title{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--tx1)}
+.skin-sheet-x{width:28px;height:28px;border-radius:7px;background:var(--bg2);
+  border:1px solid var(--line2);font-size:13px;display:grid;place-items:center;
+  color:var(--tx1);cursor:pointer;transition:all .15s}
+.skin-sheet-x:hover{border-color:var(--acc);color:var(--tx0)}
+.skin-sec-lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--tx2);
+  text-transform:uppercase;margin-bottom:8px}
+.skin-preset-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.skin-preset{
+  aspect-ratio:3/2;border-radius:9px;cursor:pointer;
+  border:2px solid transparent;transition:all .2s;
+  overflow:hidden;position:relative;
+}
+.skin-preset:hover{transform:scale(1.04)}
+.skin-preset.active{border-color:var(--acc);box-shadow:0 0 12px rgba(255,107,0,.5)}
+.skin-preset-lbl{position:absolute;bottom:0;left:0;right:0;
+  font-family:var(--mono);font-size:8px;letter-spacing:1px;
+  color:rgba(255,255,255,.7);padding:3px 5px;
+  background:linear-gradient(to top,rgba(0,0,0,.7),transparent);
+  text-align:center}
+.skin-upload-area{
+  border:2px dashed var(--line2);border-radius:10px;padding:18px;
+  text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px;
+}
+.skin-upload-area:hover{border-color:var(--acc);background:rgba(255,107,0,.04)}
+.skin-upload-ico{font-size:28px;margin-bottom:6px}
+.skin-upload-lbl{font-size:12px;color:var(--tx1);margin-bottom:3px}
+.skin-upload-sub{font-size:10px;color:var(--tx2)}
+.skin-preview{
+  width:100%;aspect-ratio:16/7;border-radius:10px;overflow:hidden;
+  margin-bottom:12px;background:var(--bg2);position:relative;display:none;
+}
+.skin-preview.on{display:block}
+.skin-preview img{width:100%;height:100%;object-fit:cover}
+.skin-preview-lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.45);font-size:11px;color:rgba(255,255,255,.6);opacity:0;transition:.2s}
+.skin-preview:hover .skin-preview-lbl{opacity:1}
+.skin-actions{display:flex;gap:8px}
+.skin-action-btn{flex:1;height:36px;border-radius:8px;font-size:12px;font-weight:600;
+  border:1px solid var(--line2);background:var(--bg2);color:var(--tx0);
+  cursor:pointer;transition:all .15s}
+.skin-action-btn:hover{border-color:var(--acc);color:var(--acc)}
+.skin-action-btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc2));
+  border-color:transparent;color:#fff}
+.skin-action-btn.primary:hover{opacity:.9}
+.skin-action-btn.danger{color:var(--err);border-color:rgba(255,64,64,.3)}
+.skin-action-btn.danger:hover{background:rgba(255,64,64,.1)}
+</style>
+</head>
+<body>
+
+<!-- ── LOADERS & OVERLAYS ──────────────── -->
+<div id="siteload">
+  <div id="sl-logo">ARCADE.VAULT</div>
+  <div id="sl-bar"><div id="sl-fill"></div></div>
+  <div id="sl-txt">INITIALIZING...</div>
+</div>
+<div id="drop-overlay">
+  <div id="drop-box">
+    <div class="d-ico">📂</div>
+    <h3>أفلت الملفات هنا</h3>
+    <p style="font-size:12px;color:var(--tx1)">ROM • ZIP • 7z • مجلدات</p>
+  </div>
+</div>
+
+<!-- ── HIDDEN INPUTS ── -->
+<input type="file" id="fi-folder" webkitdirectory multiple style="display:none">
+<input type="file" id="fi-files" multiple style="display:none"
+  accept=".nes,.smc,.sfc,.n64,.z64,.gb,.gbc,.gba,.nds,.md,.gen,.sms,.gg,.bin,.iso,.pbp,.a26,.a78,.lnx,.pce,.ngp,.ws,.vb,.zip,.7z,.cue,.chd,.gdi,.32x">
+
+<!-- ── APP ── -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div id="logo" onclick="nav('home')">
+      <div id="logo-dot"></div>ARCADE.VAULT
+    </div>
+    <div id="search-wrap">
+      <input id="search" type="search" placeholder="ابحث عن لعبة..." oninput="onSearch(this.value)">
+    </div>
+    <div id="topbar-right">
+      <div class="stat-pill"><b id="stat-g">0</b>&nbsp;GAMES</div>
+      <div class="stat-pill"><b id="stat-s">0</b>&nbsp;SYS</div>
+      <button id="folder-btn" class="icon-btn" onclick="showFolderMenu()">📁
+        <div id="fldr-badge" class="icon-badge"></div>
+      </button>
+      <button id="sync-btn" class="icon-btn" onclick="scanRoms(true)">⟳</button>
+      <button class="icon-btn" onclick="openSettings()">⚙</button>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div id="status-bar" class="hide">
+    <div class="sdot" id="sdot"></div>
+    <div id="status-txt"></div>
+    <button id="status-act" style="display:none" onclick="openSettings()">⚙ إعدادات</button>
+  </div>
+
+  <!-- NAV -->
+  <div id="nav">
+    <button class="tab on" id="tab-home" onclick="nav('home')">🏠 الرئيسية</button>
+    <button class="tab" id="tab-games" onclick="nav('games')">🎮 الألعاب <span class="tab-cnt" id="tg-cnt">0</span></button>
+    <button class="tab" id="tab-systems" onclick="nav('systems')">📟 الأنظمة</button>
+    <button class="tab" id="tab-fav" onclick="nav('fav')">❤ المفضلة <span class="tab-cnt" id="tf-cnt">0</span></button>
+  </div>
+
+  <!-- ══ HOME ══ -->
+  <div class="screen on" id="screen-home">
+    <div style="padding:28px 0 20px;text-align:center">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:4px;color:var(--tx2);margin-bottom:8px">LOCAL · CLOUD · RETRO GAMING</div>
+      <div style="font-family:var(--orb);font-size:clamp(28px,8vw,56px);font-weight:900;background:linear-gradient(135deg,#fff 20%,var(--acc) 55%,var(--acc2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:8px">ARCADE.VAULT</div>
+      <div style="font-size:12px;color:var(--tx1);margin-bottom:20px">العب ألعابك المحلية والسحابية مباشرة من المتصفح</div>
+      <div style="display:flex;justify-content:center;gap:30px;margin-bottom:20px">
+        <div style="text-align:center"><div style="font-family:var(--orb);font-size:24px;font-weight:700;color:var(--tx0)" id="h-g">0</div><div style="font-size:8px;color:var(--tx2);letter-spacing:2px">GAMES</div></div>
+        <div style="text-align:center"><div style="font-family:var(--orb);font-size:24px;font-weight:700;color:var(--tx0)" id="h-s">0</div><div style="font-size:8px;color:var(--tx2);letter-spacing:2px">SYSTEMS</div></div>
+        <div style="text-align:center"><div style="font-family:var(--orb);font-size:24px;font-weight:700;color:var(--ok)" id="h-l">0</div><div style="font-size:8px;color:var(--tx2);letter-spacing:2px">LOCAL</div></div>
+      </div>
+    </div>
+    <div id="welcome">
+      <div class="welcome-ico">🎮</div>
+      <div class="welcome-title">ابدأ بتحميل الألعاب</div>
+      <p class="welcome-sub">اختر مجلداً يحتوي على ألعابك أو أفلت الملفات هنا. يدعم أكثر من 25 نظام كلاسيكي وملفات ZIP و 7z.</p>
+      <div class="welcome-btns">
+        <button class="pick-btn" onclick="pickFolder()">📂 اختر مجلد الألعاب</button>
+        <button class="pick-btn sec" onclick="pickFiles()">🎮 اختر ملفات مباشرة</button>
+      </div>
+      <div class="fmt-tags">
+        <span class="fmt-tag">NES</span><span class="fmt-tag">SNES</span><span class="fmt-tag">N64</span>
+        <span class="fmt-tag">GBA</span><span class="fmt-tag">NDS</span><span class="fmt-tag">PS1</span>
+        <span class="fmt-tag">PSP</span><span class="fmt-tag">MD</span><span class="fmt-tag">MAME</span>
+        <span class="fmt-tag" style="color:var(--warn)">ZIP</span>
+        <span class="fmt-tag" style="color:var(--acc2)">7z</span>
+        <span class="fmt-tag" style="color:var(--tx2)">+15 نظام آخر</span>
+      </div>
+    </div>
+    <div class="sec" id="h-games-sec" style="display:none">
+      <div class="sec-row">
+        <div class="sec-title">الألعاب الأخيرة</div>
+        <div class="sec-line"></div>
+        <div class="sec-cnt" id="h-cnt">0</div>
+      </div>
+      <div class="chips" id="h-chips"></div>
+      <div class="grid" id="h-grid"></div>
+      <div style="text-align:center;margin-top:16px">
+        <button class="pick-btn sec" onclick="nav('games')" style="font-size:12px;height:36px">عرض كل الألعاب →</button>
+      </div>
+    </div>
+    <div class="sec" id="h-free-sec">
+      <div class="sec-row">
+        <div class="sec-title" style="color:var(--acc)">ألعاب تجريبية مجانية</div>
+        <div class="sec-line"></div>
+        <button onclick="loadFreeGames()" style="font-family:var(--mono);font-size:10px;color:var(--acc);padding:3px 8px;border:1px solid rgba(255,107,0,.4);border-radius:5px;background:rgba(255,107,0,.08);cursor:pointer" id="free-load-btn">تحميل ▶</button>
+      </div>
+      <div class="grid" id="free-grid">
+        <div class="empty" style="padding:24px">
+          <div class="empty-ico" style="font-size:32px">🕹</div>
+          <div class="empty-sub">اضغط "تحميل" لتجربة ألعاب Homebrew مجانية مباشرة</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GAMES ══ -->
+  <div class="screen" id="screen-games">
+    <div class="sec">
+      <div class="sec-row">
+        <div class="sec-title">كل الألعاب</div>
+        <div class="sec-line"></div>
+        <div class="sec-cnt" id="g-cnt">0</div>
+        <button onclick="pickFolder()" style="font-family:var(--mono);font-size:10px;color:var(--acc);padding:3px 8px;border:1px solid rgba(255,107,0,.4);border-radius:5px;background:rgba(255,107,0,.08);cursor:pointer">+ مجلد</button>
+      </div>
+      <div class="chips" id="g-chips"></div>
+      <div class="grid" id="g-grid"></div>
+    </div>
+  </div>
+
+  <!-- ══ SYSTEMS ══ -->
+  <div class="screen" id="screen-systems">
+    <div class="sec">
+      <div class="sec-row"><div class="sec-title">الأنظمة</div><div class="sec-line"></div></div>
+      <div class="sys-grid" id="sys-grid"></div>
+    </div>
+  </div>
+
+  <!-- ══ FAVORITES ══ -->
+  <div class="screen" id="screen-fav">
+    <div class="sec">
+      <div class="sec-row"><div class="sec-title">المفضلة</div><div class="sec-line"></div></div>
+      <div class="grid" id="fav-grid"></div>
+    </div>
+  </div>
+
+  <!-- ══ CONSOLE DETAIL ══ -->
+  <div id="screen-console">
+    <div class="con-hero" id="con-hero">
+      <div class="con-big-ico" id="con-big-ico"></div>
+      <button class="con-hero-back" onclick="navBack()">←</button>
+      <button class="con-skin-btn" id="con-skin-btn" onclick="openSkinPicker(curConsole)">🎨 سكن</button>
+      <div class="con-hero-content">
+        <div class="con-era" id="con-era"></div>
+        <div class="con-name" id="con-name"></div>
+        <div class="con-tagline" id="con-tagline"></div>
+        <div class="con-stats">
+          <div class="con-stat"><div class="con-stat-val" id="con-stat-games">0</div><div class="con-stat-lbl">GAMES</div></div>
+          <div class="con-stat"><div class="con-stat-val" id="con-stat-perf">—</div><div class="con-stat-lbl">PERFORMANCE</div></div>
+          <div class="con-stat"><div class="con-stat-val" id="con-stat-core">—</div><div class="con-stat-lbl">CORE</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="con-body">
+      <div class="con-filter-bar">
+        <input class="con-search" id="con-search" placeholder="🔍 ابحث في هذا النظام..." oninput="filterConsole(this.value)">
+      </div>
+      <div class="grid" id="con-grid"></div>
+    </div>
+  </div>
+</div><!-- /#app -->
+
+<!-- ══ GAME DETAIL PAGE ══ -->
+<div id="game-detail">
+  <div class="gd-bg"></div>
+  <div class="gd-blur-art" id="gd-blur"></div>
+  <div class="gd-overlay"></div>
+  <div class="gd-inner">
+    <div class="gd-bar">
+      <button class="gd-back" onclick="closeGameDetail()">←</button>
+      <div class="gd-bar-title" id="gd-bar-title">تفاصيل اللعبة</div>
+      <button class="fav-btn on" id="gd-fav-btn" onclick="toggleFavFromDetail()" style="position:static;opacity:1;width:36px;height:36px;border-radius:9px;background:rgba(0,0,0,.6)">♡</button>
+    </div>
+    <div class="gd-content">
+      <div class="gd-art-col">
+        <div class="gd-art-frame" id="gd-art-frame" style="--gd-c:var(--acc)">
+          <canvas id="gd-canvas" class="gd-art-canvas" width="280" height="374"></canvas>
+          <img id="gd-art-img" class="gd-art-img" alt="">
+        </div>
+      </div>
+      <div class="gd-info-col">
+        <div class="gd-sys-line">
+          <span class="gd-sys-icon" id="gd-sys-icon">🎮</span>
+          <span class="gd-sys-name" id="gd-sys-name">SYSTEM</span>
+        </div>
+        <div class="gd-title" id="gd-title">اسم اللعبة</div>
+        <div class="gd-badges" id="gd-badges"></div>
+        <div class="gd-meta-grid" id="gd-meta"></div>
+        <button class="gd-play-btn" id="gd-play-btn" onclick="launchFromDetail()">
+          <span class="gd-play-ico">▶</span>
+          <span>العب الآن</span>
+        </button>
+        <div style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--tx2)">اضغط للتشغيل الفوري في المتصفح</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FOLDER MENU ══ -->
+<div id="folder-menu">
+  <div style="padding:6px 10px 7px;font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--tx2)">مصدر الألعاب</div>
+  <button class="fm-item" onclick="pickFolder();closeFolderMenu()">📂 اختر مجلد من الجهاز</button>
+  <button class="fm-item" onclick="pickFiles();closeFolderMenu()">🎮 اختر ملفات ROM</button>
+  <div class="fm-sep"></div>
+  <button class="fm-item" onclick="scanRoms(true);closeFolderMenu()">☁️ مزامنة GitHub</button>
+  <div class="fm-sep"></div>
+  <button class="fm-item danger" id="fm-clear" onclick="clearLocal();closeFolderMenu()" style="display:none">🗑 مسح المحلية</button>
+</div>
+<div id="folder-menu-bg" style="position:fixed;inset:0;z-index:149;display:none" onclick="closeFolderMenu()"></div>
+
+<!-- ══ SETTINGS ══ -->
+<div id="settings-panel">
+  <div class="stg-top">
+    <button class="stg-back" onclick="closeSettings()">←</button>
+    <div class="stg-heading">SETTINGS</div>
+  </div>
+  <div class="stg-body">
+    <div class="stg-sec">
+      <div class="stg-sec-title">📂 الألعاب المحلية</div>
+      <div class="stg-group">
+        <div class="stg-row" style="cursor:pointer" onclick="pickFolder()">
+          <div class="stg-ico">📁</div>
+          <div class="stg-info"><div class="stg-info-title">اختيار مجلد الألعاب</div><div class="stg-info-sub">مجلدات فرعية + ZIP + 7z</div></div>
+          <div class="stg-ctrl" style="font-size:16px;color:var(--tx2)">›</div>
+        </div>
+        <div class="stg-row" style="cursor:pointer" onclick="pickFiles()">
+          <div class="stg-ico">🎮</div>
+          <div class="stg-info"><div class="stg-info-title">اختيار ملفات مباشرة</div><div class="stg-info-sub">ROM · ZIP · 7z</div></div>
+          <div class="stg-ctrl" style="font-size:16px;color:var(--tx2)">›</div>
+        </div>
+        <div id="stg-folder-info" style="padding:0"></div>
+        <div class="stg-row" style="cursor:pointer;display:none" id="stg-clear-row" onclick="clearLocal()">
+          <div class="stg-ico">🗑</div>
+          <div class="stg-info"><div class="stg-info-title">مسح الألعاب المحلية</div></div>
+          <div class="stg-ctrl" style="font-size:16px;color:var(--err)">✕</div>
+        </div>
+      </div>
+    </div>
+    <div class="stg-sec">
+      <div class="stg-sec-title">☁ GitHub</div>
+      <div class="stg-group">
+        <div class="stg-row">
+          <div class="stg-ico">🐙</div>
+          <div class="stg-info"><div class="stg-info-title">Repository</div><div class="stg-info-sub">username/repo</div></div>
+          <div class="stg-ctrl"><div style="font-family:var(--mono);font-size:10px;color:var(--acc)" id="s-repo-lbl">AUTO</div></div>
+        </div>
+        <div class="stg-input-row">
+          <input class="stg-input" id="s-owner" placeholder="username" oninput="updateRepoLbl()">
+          <input class="stg-input" id="s-repo" placeholder="repo" oninput="updateRepoLbl()">
+        </div>
+        <div class="stg-row" style="border-top:1px solid var(--line)">
+          <div class="stg-ico">🔑</div>
+          <div class="stg-info"><div class="stg-info-title">Token</div><div class="stg-info-sub">للمستودعات الخاصة</div></div>
+        </div>
+        <div class="stg-input-row"><input class="stg-input" id="s-token" placeholder="ghp_..." type="password"><button class="stg-btn" onclick="saveCloud()">حفظ</button></div>
+        <div class="stg-row" style="border-top:1px solid var(--line)">
+          <div class="stg-ico">📁</div>
+          <div class="stg-info"><div class="stg-info-title">مجلد الروم</div></div>
+          <div class="stg-ctrl"><input class="stg-input" id="s-folder" value="roms" style="width:80px;text-align:center"></div>
+        </div>
+        <div class="stg-row" style="border-top:1px solid var(--line);cursor:pointer" onclick="scanRoms(true)">
+          <div class="stg-ico">🔄</div>
+          <div class="stg-info"><div class="stg-info-title">مسح GitHub</div></div>
+          <div class="stg-ctrl" style="font-size:16px;color:var(--tx2)">›</div>
+        </div>
+      </div>
+    </div>
+    <div class="stg-sec">
+      <div class="stg-sec-title">⚙ محرك المحاكاة</div>
+      <div class="stg-group">
+        <div class="stg-row"><div class="stg-ico">🔧</div><div class="stg-info"><div class="stg-info-title">EmulatorJS CDN</div></div></div>
+        <div class="stg-input-row"><input class="stg-input" id="s-ejs" value="https://cdn.emulatorjs.org/stable/data/"><button class="stg-btn" onclick="saveCDN()">حفظ</button></div>
+        <div class="stg-row" style="border-top:1px solid var(--line)"><div class="stg-ico">🎯</div><div class="stg-info"><div class="stg-info-title">Core Overrides</div></div></div>
+        <div id="core-overrides" style="padding:0 15px 14px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+    <div class="stg-sec">
+      <div class="stg-sec-title">💾 BIOS</div>
+      <div class="stg-group" id="bios-group"></div>
+    </div>
+    <div class="stg-sec">
+      <div class="stg-sec-title">⚡ الأداء</div>
+      <div class="stg-group">
+        <div class="stg-row">
+          <div class="stg-ico">🖥</div>
+          <div class="stg-info"><div class="stg-info-title">WebGL</div><div class="stg-info-sub" id="webgl-status">لم يتم الفحص</div></div>
+          <div class="stg-ctrl"><button class="stg-btn" onclick="checkWebGL()">فحص</button></div>
+        </div>
+        <div class="stg-row"><div class="stg-ico">📊</div><div class="stg-info"><div class="stg-info-title">تحذيرات الأداء</div></div><div class="stg-ctrl"><div class="toggle on" id="t-perf" onclick="this.classList.toggle('on')"></div></div></div>
+        <div class="stg-row"><div class="stg-ico">🔀</div><div class="stg-info"><div class="stg-info-title">CORS Proxy</div></div></div>
+        <div class="stg-input-row"><input class="stg-input" id="s-proxy" placeholder="https://corsproxy.io/?"><button class="stg-btn" onclick="saveProxy()">حفظ</button><button class="stg-btn danger" onclick="clearProxy()">مسح</button></div>
+      </div>
+    </div>
+    <div class="stg-sec">
+      <div class="stg-sec-title">📺 العرض</div>
+      <div class="stg-group">
+        <div class="stg-row"><div class="stg-ico">🎨</div><div class="stg-info"><div class="stg-info-title">CRT Shader</div></div></div>
+        <div style="padding:0 15px 14px"><div class="shader-grid" id="shader-grid"></div></div>
+        <div class="stg-row"><div class="stg-ico">🖼</div><div class="stg-info"><div class="stg-info-title">أغلفة Box Art</div><div class="stg-info-sub">Libretro Thumbnails</div></div><div class="stg-ctrl"><div class="toggle on" id="t-art" onclick="toggleArt()"></div></div></div>
+        <div class="stg-row"><div class="stg-ico">📱</div><div class="stg-info"><div class="stg-info-title">Gamepad على الشاشة</div></div><div class="stg-ctrl"><div class="toggle" id="t-gp" onclick="toggleGpUi()"></div></div></div>
+      </div>
+    </div>
+    <div class="stg-sec">
+      <div class="stg-sec-title">🎨 سكنات الكونسولات</div>
+      <div class="stg-group">
+        <div class="stg-row">
+          <div class="stg-ico">🎨</div>
+          <div class="stg-info"><div class="stg-info-title">سكنات مخصصة</div><div class="stg-info-sub">خلفية مختلفة لكل كونسول</div></div>
+          <div class="stg-ctrl"><button class="stg-btn" onclick="closeSettings();nav('systems')">إدارة ←</button></div>
+        </div>
+        <div class="stg-row" style="cursor:pointer" onclick="clearAllSkins()">
+          <div class="stg-ico">🗑</div>
+          <div class="stg-info"><div class="stg-info-title">مسح كل السكنات</div></div>
+          <div class="stg-ctrl" style="font-size:16px;color:var(--err)">✕</div>
+        </div>
+      </div>
+    </div>
+    <div class="stg-sec">
+      <div class="stg-sec-title">💾 الحفظ</div>
+      <div class="stg-group">
+        <div class="stg-row"><div class="stg-ico">⏱</div><div class="stg-info"><div class="stg-info-title">حفظ تلقائي</div><div class="stg-info-sub">كل 60 ثانية</div></div><div class="stg-ctrl"><div class="toggle on" id="t-as" onclick="this.classList.toggle('on')"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCAN PROGRESS ══ -->
+<div id="scan-prog">
+  <div id="sp-title">⏳ جاري المسح...</div>
+  <div id="sp-file">—</div>
+  <div id="sp-bar"><div id="sp-fill"></div></div>
+</div>
+
+<!-- ══ EMULATOR ══ -->
+<div id="emu">
+  <div id="emu-bar">
+    <button id="emu-back-btn" onclick="exitEmu()">←</button>
+    <div id="emu-info"><div id="emu-title">—</div><div id="emu-sys-lbl">—</div></div>
+    <div class="emu-as" id="emu-as"><div class="emu-as-dot"></div><span>AUTO</span></div>
+    <div class="emu-btns">
+      <button class="emu-btn" id="btn-save" onclick="doSave()">💾</button>
+      <button class="emu-btn" onclick="doLoad()">📂</button>
+      <button class="emu-btn" onclick="toggleQP()">⚙</button>
+      <button class="emu-btn" onclick="doFS()">⛶</button>
+    </div>
+  </div>
+  <div id="emu-content">
+    <div id="emu-load">
+      <div class="lp-wrap"><img id="lp-img" style="display:none"><canvas id="lp-cvs" width="96" height="132"></canvas></div>
+      <div id="lp-title">جاري التحميل...</div>
+      <div id="lp-sys"></div>
+      <div id="lp-status"></div>
+      <div class="lp-track"><div class="lp-fill"></div></div>
+    </div>
+    <div id="emu-err">
+      <div style="font-size:48px;opacity:.25">⚠</div>
+      <div class="err-title">تعذّر التشغيل</div>
+      <div class="err-box"><ul id="err-list"></ul></div>
+      <button class="err-close" onclick="closeErr()">← رجوع</button>
+    </div>
+    <iframe id="emu-frame" allowfullscreen allow="autoplay;fullscreen;gamepad"></iframe>
+    <div id="qp">
+      <div class="qp-head"><div class="qp-lbl">QUICK MENU</div><button class="qp-x" onclick="toggleQP()">✕</button></div>
+      <div class="qp-body">
+        <div class="qp-sec">SAVE SLOT</div>
+        <div class="qp-slots" id="qp-slots"></div>
+        <button class="qp-btn" onclick="doSave()"><div class="qp-ico" style="background:rgba(60,255,160,.1)">💾</div>حفظ الحالة</button>
+        <button class="qp-btn" onclick="doLoad()"><div class="qp-ico" style="background:rgba(30,144,255,.1)">📂</div>تحميل الحالة</button>
+        <div class="qp-sec" style="margin-top:6px">DISPLAY</div>
+        <div class="sh-mini-grid" id="qp-shaders"></div>
+        <div class="qp-sec" style="margin-top:6px">CONTROLS</div>
+        <button class="qp-btn" onclick="toggleGpUi();toggleQP()"><div class="qp-ico" style="background:rgba(255,107,0,.1)">🕹</div>أزرار الشاشة</button>
+        <button class="qp-btn danger" onclick="exitEmu()"><div class="qp-ico" style="background:rgba(255,64,96,.1)">✕</div>إغلاق اللعبة</button>
+      </div>
+    </div>
+    <div id="qp-toggle" onclick="toggleQP()">☰</div>
+    <div id="gp-ov">
+      <div>
+        <div class="gp-dpad">
+          <div></div><div class="gp-d" data-k="ArrowUp" onpointerdown="gpP(this)" onpointerup="gpR(this)" onpointerleave="gpR(this)">▲</div><div></div>
+          <div class="gp-d" data-k="ArrowLeft" onpointerdown="gpP(this)" onpointerup="gpR(this)" onpointerleave="gpR(this)">◀</div><div></div><div class="gp-d" data-k="ArrowRight" onpointerdown="gpP(this)" onpointerup="gpR(this)" onpointerleave="gpR(this)">▶</div>
+          <div></div><div class="gp-d" data-k="ArrowDown" onpointerdown="gpP(this)" onpointerup="gpR(this)" onpointerleave="gpR(this)">▼</div><div></div>
+        </div>
+      </div>
+      <div class="gp-mid-row">
+        <div class="gp-mid-btns">
+          <button class="gp-mid-b" data-k="Shift" onpointerdown="gpP(this)" onpointerup="gpR(this)">SEL</button>
+          <button class="gp-mid-b" data-k="Enter" onpointerdown="gpP(this)" onpointerup="gpR(this)">STA</button>
+        </div>
+      </div>
+      <div>
+        <div class="gp-abxy">
+          <div class="gp-b gp-y" data-k="w" onpointerdown="gpP(this)" onpointerup="gpR(this)" onpointerleave="gpR(this)">Y</div>
+          <div class="gp-b gp-b2" data-k="d" onpointerdown="gpP(this)" onpointerup="gpR(this)" onpointerleave="gpR(this)">B</div>
+          <div class="gp-b gp-x" data-k="a" onpointerdown="gpP(this)" onpointerup="gpR(this)" onpointerleave="gpR(this)">X</div>
+          <div class="gp-b gp-a" data-k="s" onpointerdown="gpP(this)" onpointerup="gpR(this)" onpointerleave="gpR(this)">A</div>
+        </div>
+      </div>
+    </div>
+    <button id="gp-show-btn" onclick="toggleGpUi()" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:34px;height:18px;border-radius:9px;background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.14);cursor:pointer;font-size:10px;display:none;place-items:center;z-index:6;pointer-events:all;color:var(--tx0)">🕹</button>
+  </div>
+</div>
+
+
+<!-- ══ SKIN PICKER MODAL ══ -->
+<div id="skin-modal" onclick="if(event.target===this)closeSkinModal()">
+  <div class="skin-sheet">
+    <div class="skin-sheet-head">
+      <div class="skin-sheet-title">🎨 سكن الكونسول — <span id="skin-modal-name">—</span></div>
+      <button class="skin-sheet-x" onclick="closeSkinModal()">✕</button>
+    </div>
+    <div class="skin-sec-lbl">خلفيات مدمجة</div>
+    <div class="skin-preset-grid" id="skin-presets"></div>
+    <div class="skin-sec-lbl">صورة مخصصة</div>
+    <div class="skin-upload-area" onclick="document.getElementById('fi-skin').click()">
+      <div class="skin-upload-ico">🖼</div>
+      <div class="skin-upload-lbl">ارفع صورة خلفية</div>
+      <div class="skin-upload-sub">JPG · PNG · WEBP · بحد أقصى 3MB</div>
+    </div>
+    <div class="skin-preview" id="skin-preview">
+      <img id="skin-preview-img" src="" alt="">
+      <div class="skin-preview-lbl">✕ حذف الصورة</div>
+    </div>
+    <div class="skin-actions">
+      <button class="skin-action-btn danger" onclick="removeSkin()">🗑 حذف السكن</button>
+      <button class="skin-action-btn primary" onclick="applySkinAndClose()">✅ تطبيق</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="fi-skin" accept="image/*" style="display:none">
+<div id="toast"></div>
+<div id="gp-bar"></div>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════
+   SYSTEMS REGISTRY + THEMES
+══════════════════════════════════════════════════════ */
+const SYS = {
+  nes: {n:'NES',f:'Nintendo Entertainment System',core:'nes',ico:'🎮',col:'#e03030',perf:1,
+    lf:'Nintendo - Nintendo Entertainment System',cores:['nes','fceumm','nestopia'],bios:null,
+    era:'1983 — 1995',tagline:"Now You're Playing With Power",
+    bg:'#1a0505',grad:'linear-gradient(135deg,#1a0505,#2d0808 50%,#1a0505)',
+    pat:'repeating-linear-gradient(0deg,rgba(224,48,48,.4) 0,rgba(224,48,48,.4) 1px,transparent 0,transparent 8px),repeating-linear-gradient(90deg,rgba(224,48,48,.4) 0,rgba(224,48,48,.4) 1px,transparent 0,transparent 8px)',
+    cb:'#e03030'},
+  snes:{n:'SNES',f:'Super Nintendo',core:'snes',ico:'🎮',col:'#9060d0',perf:1,
+    lf:'Nintendo - Super Nintendo Entertainment System',cores:['snes','snes9x'],bios:null,
+    era:'1990 — 2003',tagline:'Play It Loud',
+    bg:'#0f0520',grad:'linear-gradient(135deg,#0f0520,#1a0a35 50%,#0f0520)',
+    pat:'repeating-linear-gradient(45deg,rgba(144,96,208,.5) 0,rgba(144,96,208,.5) 1px,transparent 0,transparent 14px)',
+    cb:'#9060d0'},
+  n64: {n:'N64',f:'Nintendo 64',core:'n64',ico:'🎮',col:'#2090d0',perf:2,
+    lf:'Nintendo - Nintendo 64',cores:['n64','mupen64plus'],bios:null,
+    era:'1996 — 2002',tagline:'Get Into It',
+    bg:'#020d1a',grad:'linear-gradient(135deg,#020d1a,#051828 50%,#020d1a)',
+    pat:'radial-gradient(circle,rgba(32,144,208,.4) 1px,transparent 1px) 0 0 / 20px 20px',
+    cb:'#2090d0'},
+  gc:  {n:'GC',f:'GameCube',core:'dolphin',ico:'🎲',col:'#7030c0',perf:4,
+    lf:'Nintendo - GameCube',cores:['dolphin'],bios:null,
+    era:'2001 — 2007',tagline:'Born to Play',warn:'ثقيل جداً في المتصفح',
+    bg:'#0d0520',grad:'linear-gradient(135deg,#0d0520,#180a35)',
+    pat:'repeating-linear-gradient(120deg,rgba(112,48,192,.4) 0,rgba(112,48,192,.4) 1px,transparent 0,transparent 18px)',
+    cb:'#7030c0'},
+  gb:  {n:'GB',f:'Game Boy',core:'gb',ico:'🕹',col:'#6a9a30',perf:1,
+    lf:'Nintendo - Game Boy',cores:['gb','gambatte','sameboy'],bios:null,
+    era:'1989 — 2003',tagline:'Game Boy — Take It Anywhere',
+    bg:'#0a1205',grad:'linear-gradient(135deg,#0a1205,#101a07)',
+    pat:'repeating-linear-gradient(0deg,rgba(106,154,48,.4) 0,rgba(106,154,48,.4) 1px,transparent 0,transparent 6px),repeating-linear-gradient(90deg,rgba(106,154,48,.4) 0,rgba(106,154,48,.4) 1px,transparent 0,transparent 6px)',
+    cb:'#6a9a30'},
+  gbc: {n:'GBC',f:'Game Boy Color',core:'gbc',ico:'🕹',col:'#30b0d0',perf:1,
+    lf:'Nintendo - Game Boy Color',cores:['gbc','gambatte'],bios:null,
+    era:'1998 — 2003',tagline:'Blast From The Past In Color',
+    bg:'#021518',grad:'linear-gradient(135deg,#021518,#052028)',
+    pat:'radial-gradient(circle,rgba(48,176,208,.35) 1.5px,transparent 1.5px) 0 0 / 15px 15px',
+    cb:'#30b0d0'},
+  gba: {n:'GBA',f:'Game Boy Advance',core:'gba',ico:'🕹',col:'#9040e0',perf:1,
+    lf:'Nintendo - Game Boy Advance',cores:['gba','mgba'],bios:null,
+    era:'2001 — 2010',tagline:'Advance Into a New Era',
+    bg:'#0f0320',grad:'linear-gradient(135deg,#0f0320,#180540)',
+    pat:'repeating-linear-gradient(60deg,rgba(144,64,224,.4) 0,rgba(144,64,224,.4) 1px,transparent 0,transparent 16px),repeating-linear-gradient(-60deg,rgba(144,64,224,.2) 0,rgba(144,64,224,.2) 1px,transparent 0,transparent 16px)',
+    cb:'#9040e0'},
+  nds: {n:'NDS',f:'Nintendo DS',core:'nds',ico:'🎮',col:'#d03030',perf:2,
+    lf:'Nintendo - Nintendo DS',cores:['nds','melonds'],bios:null,
+    era:'2004 — 2013',tagline:'Touching is Good',
+    bg:'#1a0505',grad:'linear-gradient(135deg,#1a0505,#220808)',
+    pat:'radial-gradient(ellipse,rgba(208,48,48,.35) 1px,transparent 1px) 0 0 / 18px 9px',
+    cb:'#d03030'},
+  md:  {n:'MD',f:'Sega Mega Drive',core:'segaMD',ico:'🕹',col:'#2850b0',perf:1,
+    lf:'Sega - Mega Drive - Genesis',cores:['segaMD','genesis_plus_gx','picodrive'],bios:null,
+    era:'1988 — 1997',tagline:'SEGA Does What Nintendon\'t',
+    bg:'#020810',grad:'linear-gradient(135deg,#020810,#040e1c)',
+    pat:'repeating-linear-gradient(90deg,rgba(40,80,176,.5) 0,rgba(40,80,176,.5) 2px,transparent 0,transparent 22px)',
+    cb:'#2850b0'},
+  sms: {n:'SMS',f:'Sega Master System',core:'segaMS',ico:'🕹',col:'#1860a0',perf:1,
+    lf:'Sega - Master System - Mark III',cores:['segaMS'],bios:null,
+    era:'1985 — 1992',tagline:'The Master System',
+    bg:'#021015',grad:'linear-gradient(135deg,#021015,#031a22)',
+    pat:'repeating-linear-gradient(45deg,rgba(24,96,160,.4) 0,rgba(24,96,160,.4) 1px,transparent 0,transparent 12px)',
+    cb:'#1860a0'},
+  gg:  {n:'GG',f:'Sega Game Gear',core:'segaGG',ico:'🕹',col:'#309060',perf:1,
+    lf:'Sega - Game Gear',cores:['segaGG'],bios:null,
+    era:'1990 — 1997',tagline:'Sega Game Gear',
+    bg:'#051510',grad:'linear-gradient(135deg,#051510,#081e15)',
+    pat:'repeating-linear-gradient(135deg,rgba(48,144,96,.4) 0,rgba(48,144,96,.4) 1px,transparent 0,transparent 14px)',
+    cb:'#309060'},
+  dc:  {n:'DC',f:'Sega Dreamcast',core:'flycast',ico:'💿',col:'#e07020',perf:3,
+    lf:'Sega - Dreamcast',cores:['flycast'],bios:'dc_boot.bin',
+    era:'1998 — 2001',tagline:'It\'s Thinking',
+    bg:'#180e02',grad:'linear-gradient(135deg,#180e02,#241504)',
+    pat:'repeating-radial-gradient(circle at 50% 50%,rgba(224,112,32,.3) 0,rgba(224,112,32,.3) 1px,transparent 0,transparent 15px) 0 0 / 30px 30px',
+    cb:'#e07020'},
+  sat: {n:'SAT',f:'Sega Saturn',core:'yabause',ico:'💿',col:'#a0a010',perf:4,
+    lf:'Sega - Saturn',cores:['yabause'],bios:'sega_101.bin',warn:'ثقيل جداً',
+    era:'1994 — 2000',tagline:'Saturn is the Best',
+    bg:'#141400',grad:'linear-gradient(135deg,#141400,#1e1e00)',
+    pat:'repeating-linear-gradient(30deg,rgba(160,160,16,.4) 0,rgba(160,160,16,.4) 1px,transparent 0,transparent 20px)',
+    cb:'#a0a010'},
+  scd: {n:'SCD',f:'Sega CD',core:'segaCD',ico:'💿',col:'#207040',perf:2,
+    lf:'Sega - Mega-CD',cores:['segaCD'],bios:'bios_CD_U.bin',
+    era:'1991 — 1996',tagline:'Sega CD',
+    bg:'#051208',grad:'linear-gradient(135deg,#051208,#081a0c)',
+    pat:'repeating-linear-gradient(0deg,rgba(32,112,64,.4) 0,rgba(32,112,64,.4) 1px,transparent 0,transparent 10px)',
+    cb:'#207040'},
+  s32x:{n:'32X',f:'Sega 32X',core:'sega32x',ico:'🕹',col:'#b02020',perf:2,
+    lf:'Sega - 32X',cores:['sega32x','picodrive'],bios:null,
+    era:'1994 — 1996',tagline:'32X Extended',
+    bg:'#160505',grad:'linear-gradient(135deg,#160505,#1e0707)',
+    pat:'repeating-linear-gradient(45deg,rgba(176,32,32,.4) 0,rgba(176,32,32,.4) 1px,transparent 0,transparent 16px)',
+    cb:'#b02020'},
+  psx: {n:'PS1',f:'PlayStation 1',core:'psx',ico:'🎮',col:'#2040a0',perf:2,
+    lf:'Sony - PlayStation',cores:['psx','pcsx_rearmed','mednafen_psx'],bios:'scph1001.bin',
+    era:'1994 — 2006',tagline:'Do Not Underestimate The Power of PlayStation',
+    bg:'#020510',grad:'linear-gradient(135deg,#020510,#040818)',
+    pat:'repeating-linear-gradient(0deg,rgba(32,64,160,.35) 0,rgba(32,64,160,.35) 1px,transparent 0,transparent 24px)',
+    cb:'#2040a0'},
+  psp: {n:'PSP',f:'PlayStation Portable',core:'ppsspp',ico:'🎮',col:'#1050c0',perf:3,
+    lf:'Sony - PlayStation Portable',cores:['ppsspp'],bios:null,
+    era:'2005 — 2014',tagline:'Play Beyond',
+    bg:'#020812',grad:'linear-gradient(135deg,#020812,#030d1c)',
+    pat:'radial-gradient(ellipse 60% 30%,rgba(16,80,192,.3) 0,transparent 70%) 0 0 / 60px 30px',
+    cb:'#1050c0'},
+  fbneo:{n:'FBNeo',f:'Arcade Final Burn Neo',core:'fbneo',ico:'🕹',col:'#c0a000',perf:1,
+    lf:'FBNeo - Arcade Games',cores:['fbneo'],bios:null,
+    era:'1975 — 2000',tagline:'INSERT COIN',
+    bg:'#141000',grad:'linear-gradient(135deg,#141000,#1e1800)',
+    pat:'repeating-linear-gradient(0deg,rgba(192,160,0,.4) 0,rgba(192,160,0,.4) 1px,transparent 0,transparent 8px),repeating-linear-gradient(90deg,rgba(192,160,0,.2) 0,rgba(192,160,0,.2) 1px,transparent 0,transparent 8px)',
+    cb:'#c0a000'},
+  mame:{n:'MAME',f:'MAME 2003+',core:'mame2003plus',ico:'🕹',col:'#d03030',perf:2,
+    lf:'MAME',cores:['mame2003plus','mame2000'],bios:null,
+    era:'Classic Arcade',tagline:'Multiple Arcade Machine Emulator',
+    bg:'#160303',grad:'linear-gradient(135deg,#160303,#200404)',
+    pat:'repeating-linear-gradient(45deg,rgba(208,48,48,.35) 0,rgba(208,48,48,.35) 1px,transparent 0,transparent 10px),repeating-linear-gradient(-45deg,rgba(208,48,48,.15) 0,rgba(208,48,48,.15) 1px,transparent 0,transparent 10px)',
+    cb:'#d03030'},
+  a2600:{n:'A2600',f:'Atari 2600',core:'atari2600',ico:'🕹',col:'#d05010',perf:1,
+    lf:'Atari - 2600',cores:['atari2600','stella'],bios:null,
+    era:'1977 — 1992',tagline:'Have You Played Atari Today?',
+    bg:'#160a02',grad:'linear-gradient(135deg,#160a02,#201004)',
+    pat:'repeating-linear-gradient(0deg,rgba(208,80,16,.4) 0,rgba(208,80,16,.4) 2px,transparent 0,transparent 14px)',
+    cb:'#d05010'},
+  a7800:{n:'A7800',f:'Atari 7800',core:'atari7800',ico:'🕹',col:'#c03010',perf:1,
+    lf:'Atari - 7800',cores:['atari7800'],bios:null,
+    era:'1986 — 1992',tagline:'The Future is Here',
+    bg:'#140502',grad:'linear-gradient(135deg,#140502,#1c0803)',
+    pat:'repeating-linear-gradient(90deg,rgba(192,48,16,.35) 0,rgba(192,48,16,.35) 2px,transparent 0,transparent 18px)',
+    cb:'#c03010'},
+  lynx:{n:'Lynx',f:'Atari Lynx',core:'lynx',ico:'🕹',col:'#e08020',perf:1,
+    lf:'Atari - Lynx',cores:['lynx','handy'],bios:'lynxboot.img',
+    era:'1989 — 1995',tagline:'The First Color Handheld',
+    bg:'#181004',grad:'linear-gradient(135deg,#181004,#201506)',
+    pat:'radial-gradient(circle,rgba(224,128,32,.35) 1px,transparent 1px) 0 0 / 16px 16px',
+    cb:'#e08020'},
+  pce: {n:'PCE',f:'PC Engine',core:'pce',ico:'🕹',col:'#e05020',perf:1,
+    lf:'NEC - PC Engine - TurboGrafx 16',cores:['pce','mednafen_pce'],bios:null,
+    era:'1987 — 1994',tagline:'The Fastest 8-bit',
+    bg:'#160804',grad:'linear-gradient(135deg,#160804,#200c06)',
+    pat:'repeating-linear-gradient(60deg,rgba(224,80,32,.4) 0,rgba(224,80,32,.4) 1px,transparent 0,transparent 15px)',
+    cb:'#e05020'},
+  ngp: {n:'NGP',f:'Neo Geo Pocket',core:'ngp',ico:'🕹',col:'#c09000',perf:1,
+    lf:'SNK - Neo Geo Pocket Color',cores:['ngp'],bios:null,
+    era:'1998 — 2001',tagline:'Neo Geo Pocket',
+    bg:'#151200',grad:'linear-gradient(135deg,#151200,#1e1a00)',
+    pat:'repeating-linear-gradient(135deg,rgba(192,144,0,.35) 0,rgba(192,144,0,.35) 1px,transparent 0,transparent 18px)',
+    cb:'#c09000'},
+  ws:  {n:'WS',f:'WonderSwan',core:'ws',ico:'🕹',col:'#00a0a0',perf:1,
+    lf:'Bandai - WonderSwan Color',cores:['ws','mednafen_wswan'],bios:null,
+    era:'1999 — 2002',tagline:'WonderSwan',
+    bg:'#001515',grad:'linear-gradient(135deg,#001515,#001e1e)',
+    pat:'radial-gradient(circle,rgba(0,160,160,.35) 1px,transparent 1px) 0 0 / 14px 14px',
+    cb:'#00a0a0'},
+  vb:  {n:'VBoy',f:'Virtual Boy',core:'vb',ico:'👓',col:'#c01010',perf:1,
+    lf:'Nintendo - Virtual Boy',cores:['vb'],bios:null,
+    era:'1995 — 1996',tagline:'Virtual Boy — 3D Power',
+    bg:'#140000',grad:'linear-gradient(135deg,#140000,#1e0000)',
+    pat:'repeating-linear-gradient(0deg,rgba(192,16,16,.5) 0,rgba(192,16,16,.5) 1px,transparent 0,transparent 4px)',
+    cb:'#c01010'},
+  dos: {n:'DOS',f:'MS-DOS',core:'dosbox',ico:'💻',col:'#10d060',perf:1,
+    lf:'DOS',cores:['dosbox','dosbox_pure'],bios:null,
+    era:'1981 — 2000',tagline:'C:\\> Ready',
+    bg:'#001505',grad:'linear-gradient(135deg,#001505,#001e08)',
+    pat:'repeating-linear-gradient(0deg,rgba(16,208,96,.3) 0,rgba(16,208,96,.3) 1px,transparent 0,transparent 3px)',
+    cb:'#10d060'},
+};
+
+const EXT_MAP={
+  '.nes':'nes','.smc':'snes','.sfc':'snes','.n64':'n64','.z64':'n64','.v64':'n64',
+  '.gcm':'gc','.iso':'psx','.gcz':'gc','.rvz':'gc','.wbfs':'gc',
+  '.gb':'gb','.gbc':'gbc','.gba':'gba','.nds':'nds',
+  '.md':'md','.gen':'md','.smd':'md','.sms':'sms','.gg':'gg',
+  '.cue':'scd','.chd':'dc','.gdi':'dc','.cdi':'dc',
+  '.32x':'s32x','.bin':'psx','.pbp':'psp','.cso':'psp',
+  '.a26':'a2600','.a78':'a7800','.lnx':'lynx','.pce':'pce',
+  '.ngp':'ngp','.ngc':'ngp','.ngpc':'ngp','.ws':'ws','.wsc':'ws',
+  '.vb':'vb','.vboy':'vb','.exe':'dos',
+};
+
+const PERF=['','⚡ خفيف','⚡⚡ متوسط','🔥 ثقيل','💀 ثقيل جداً'];
+const PERF_CLS=['','p1','p2','p3','p4'];
+const SHADERS=[{id:'none',label:'بدون',ico:'🖥'},{id:'scan',label:'Scanlines',ico:'📺'},{id:'crt',label:'CRT',ico:'📡'},{id:'warm',label:'Warm',ico:'🕯'},{id:'neon',label:'Neon',ico:'⚡'}];
+
+/* ══ STATE ══ */
+let GAMES=[],favs=new Set();
+let freeGamesLoaded=false;
+let consoleSkins={},skinModalSysId=null,skinPendingData=null;
+let cfgShader='none',cfgArt=true,cfgGpUi=false,saveSlot=1;
+let blobUrls=[],asTimer=null,activeGame=null;
+let cfgEjs='https://cdn.emulatorjs.org/stable/data/';
+let cfgProxy='',cfgCloud={owner:'',repo:'',branch:'main',folder:'roms',token:''};
+let biosUrls={},coreOverrides={},curFilter='all',curConsole='';
+let localFileMap=new Map(),localZipMap=new Map(),local7zMap=new Map();
+let localCount=0,folderName='';
+let detailGameId=null;
+const artCache=new Map(),cvCache=new Map();
+
+/* ══ HELPERS ══ */
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const sl=ms=>new Promise(r=>setTimeout(r,ms));
+let _tt;
+function toast(m,d=2800){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),d)}
+function getSys(id){return SYS[id]||{n:id.toUpperCase(),f:id,core:id,ico:'🎮',col:'#ff6b00',perf:1,cores:[id],bios:null,era:'—',tagline:'',bg:'#090501',grad:'',pat:'',cb:'#ff6b00'}}
+function isFav(id){return favs.has(id)}
+function saveFavs(){try{localStorage.setItem('av-f',JSON.stringify([...favs]))}catch{}}
+function saveCfg(){try{localStorage.setItem('av-cfg',JSON.stringify({shader:cfgShader,art:cfgArt,gpUi:cfgGpUi,ejs:cfgEjs,proxy:cfgProxy,cloud:cfgCloud,bios:biosUrls,cores:coreOverrides}))}catch{}}
+function fmtSize(b){if(!b)return '—';const k=b/1024;if(k<1024)return k.toFixed(0)+' KB';return (k/1024).toFixed(1)+' MB'}
+
+function setStatus(msg,type=''){
+  const bar=document.getElementById('status-bar'),dot=document.getElementById('sdot'),txt=document.getElementById('status-txt');
+  bar.classList.toggle('hide',!msg);if(!msg)return;dot.className='sdot '+type;txt.textContent=msg;
+}
+
+/* ══ [MODIFIED] COVER ART — محسّن بتنظيف عميق للعنوان واستخدام Image بدل fetch HEAD ══
+   - يُزيل الأقواس ورموز المنطقة والإصدار مثل (USA) [b1] (Rev A)
+   - يُجرّب عدة صيغ لاسم اللعبة حتى يجد الغلاف
+   - يستخدم Image() لتفادي مشاكل CORS في fetch
+   - يدعم Proxy إذا كان الخادم يحتاجه ══ */
+async function getArt(title,sysId){
+  if(!cfgArt)return null;
+  const key=sysId+'|'+title;if(artCache.has(key))return artCache.get(key);
+  const sys=SYS[sysId];if(!sys?.lf){artCache.set(key,null);return null}
+
+  /* تنظيف عميق: حذف كل محتوى الأقواس (رموز منطقة/إصدار) */
+  const deepClean=t=>t
+    .replace(/\s*[\(\[][^\)\]]*[\)\]]/g,'') // (USA) [b1] (Rev A) (v1.2) ...
+    .replace(/[:<>"/\\|?*]/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  /* تنظيف بسيط: مجرد إزالة الرموز غير الصالحة */
+  const simpleClean=t=>t
+    .replace(/[:<>"/\\|?*]/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+
+  const v1=simpleClean(title);
+  const v2=deepClean(title);
+  /* صيغة ثالثة: حذف الأقواس الدائرية فقط */
+  const v3=title.replace(/\s*\([^)]*\)/g,'').replace(/[:<>"/\\|?*]/g,'').trim();
+
+  /* اختبار URL بـ Image() لتجنّب CORS على HEAD request */
+  const probeUrl=url=>new Promise(resolve=>{
+    const img=new Image();
+    const t=setTimeout(()=>{img.onload=img.onerror=null;resolve(null)},7000);
+    img.onload=()=>{clearTimeout(t);resolve(url)};
+    img.onerror=()=>{clearTimeout(t);resolve(null)};
+    img.src=url;
+  });
+
+  const tryName=async nm=>{
+    if(!nm)return null;
+    const base=`https://thumbnails.libretro.com/${encodeURIComponent(sys.lf)}/Named_Boxarts/${encodeURIComponent(nm)}.png`;
+    /* جرّب مباشرة أولاً */
+    let found=await probeUrl(base);
+    /* إذا فشل وهناك Proxy، جرّب عبره */
+    if(!found&&cfgProxy){
+      found=await probeUrl(cfgProxy+encodeURIComponent(base));
+    }
+    return found;
+  };
+
+  /* جرّب الصيغ بالترتيب حتى يُعثر على غلاف */
+  const names=[...new Set([v1,v2,v3])].filter(Boolean);
+  let url=null;
+  for(const nm of names){url=await tryName(nm);if(url)break}
+
+  artCache.set(key,url);return url;
+}
+
+function hash(s){let h=0x811c9dc5;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0}return h}
+
+function genCover(title,col,ico,w=200,h=280){
+  const k=`${title}|${col}|${w}|${h}`;if(cvCache.has(k))return cvCache.get(k);
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');
+  const hv=hash(title||'?'),h1=(hv%360+360)%360,h2=(h1+65+((hv>>8)%70))%360,h3=(h1+155+((hv>>16)%70))%360;
+  const g=ctx.createLinearGradient(0,0,w,h);g.addColorStop(0,`hsl(${h1},65%,7%)`);g.addColorStop(.5,`hsl(${h2},55%,5%)`);g.addColorStop(1,`hsl(${h3},70%,4%)`);
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  ctx.save();ctx.globalAlpha=.07;ctx.fillStyle=col;
+  for(let x=0;x<w;x+=20)for(let y=0;y<h;y+=20){ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill()}
+  ctx.restore();
+  const rg=ctx.createRadialGradient(w/2,h*.38,0,w/2,h*.38,w*.55);rg.addColorStop(0,col+'44');rg.addColorStop(1,'transparent');ctx.fillStyle=rg;ctx.fillRect(0,0,w,h);
+  ctx.save();ctx.globalAlpha=.85;const sz=Math.min(w,h)*.34;ctx.font=`${sz}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor=col;ctx.shadowBlur=sz*.5;ctx.fillText(ico||'🎮',w/2,h*.36);ctx.restore();
+  const fade=ctx.createLinearGradient(0,h*.5,0,h);fade.addColorStop(0,'transparent');fade.addColorStop(.35,'rgba(0,0,0,.75)');fade.addColorStop(1,'rgba(0,0,0,.97)');ctx.fillStyle=fade;ctx.fillRect(0,h*.48,w,h);
+  const nm=(title||'').replace(/\([^)]*\)/g,'').trim();ctx.save();ctx.textAlign='center';ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=6;
+  let fs=Math.min(w*.08,13);ctx.font=`700 ${fs}px 'Space Mono',monospace`;
+  const words=nm.split(/\s+/),lines=[];let cur='';
+  for(const wd of words){const t=cur?cur+' '+wd:wd;if(ctx.measureText(t).width>w-16&&cur){lines.push(cur);cur=wd}else cur=t}if(cur)lines.push(cur);
+  const lh=fs*1.35,ty=h-lines.length*lh-8;lines.forEach((l,i)=>ctx.fillText(l,w/2,ty+i*lh+lh/2));ctx.restore();
+  cvCache.set(k,cv);return cv;
+}
+
+/* ══ LOCAL FILES ══ */
+async function pickFolder(){
+  if('showDirectoryPicker' in window){
+    try{
+      const d=await window.showDirectoryPicker({mode:'read'});
+      folderName=d.name;
+      const items=await collectDirItems(d,d.name);
+      await processLocalFiles(items);
+    }catch(e){if(e.name!=='AbortError')document.getElementById('fi-folder').click()}
+  }else document.getElementById('fi-folder').click();
+}
+function pickFiles(){document.getElementById('fi-files').click()}
+
+async function collectDirItems(handle,base=''){
+  const items=[];
+  for await(const[name,h] of handle.entries()){
+    if(h.kind==='file'){try{const f=await h.getFile();items.push({file:f,path:base?base+'/'+name:name})}catch{}}
+    else if(h.kind==='directory'){items.push(...await collectDirItems(h,base?base+'/'+name:name))}
+  }
+  return items;
+}
+
+document.getElementById('fi-folder').addEventListener('change',async function(){
+  if(!this.files.length)return;
+  folderName=this.files[0].webkitRelativePath.split('/')[0]||'مجلد';
+  await processLocalFiles(Array.from(this.files).map(f=>({file:f,path:f.webkitRelativePath||f.name})));
+  this.value='';
+});
+document.getElementById('fi-files').addEventListener('change',async function(){
+  if(!this.files.length)return;
+  await processLocalFiles(Array.from(this.files).map(f=>({file:f,path:f.name})));
+  this.value='';
+});
+
+async function processLocalFiles(items){
+  const sp=document.getElementById('scan-prog');sp.classList.add('on');
+  document.getElementById('sp-title').textContent=`⏳ جاري مسح ${items.length} ملف...`;
+  document.getElementById('sp-fill').style.width='0%';
+  const newGames=[];let done=0;
+  for(const{file,path}of items){
+    done++;
+    document.getElementById('sp-fill').style.width=Math.round(done/items.length*100)+'%';
+    document.getElementById('sp-file').textContent=path.length>50?'...'+path.slice(-47):path;
+    const ext='.'+file.name.toLowerCase().split('.').pop();
+    if(EXT_MAP[ext]){const g=mkLocal(file.name,EXT_MAP[ext],file.size,'local');localFileMap.set(g.id,file);newGames.push(g)}
+    else if(ext==='.zip'){try{newGames.push(...await scanZip(file))}catch(e){console.warn('ZIP:',e)}}
+    else if(ext==='.7z'){try{newGames.push(...await scan7z(file))}catch(e){console.warn('7z:',e)}}
+    if(done%5===0)await sl(0);
+  }
+  sp.classList.remove('on');
+  if(!newGames.length){toast('⚠️ لم يُعثر على ألعاب مدعومة');return}
+  const existIds=new Set(GAMES.map(g=>g.id));
+  const added=newGames.filter(g=>!existIds.has(g.id));
+  GAMES.push(...added);localCount+=added.length;
+  toast(`✅ ${added.length} لعبة محلية`);
+  setStatus(`✅ ${GAMES.length} لعبة • ${localCount} محلية`,'ok');
+  updateFolderUI();refreshAll();
+}
+
+/* ══ [MODIFIED] توليد ID موحّد يعتمد فقط على (اسم الملف بدون امتداد + رمز النظام) ══
+   مثال: "Super Mario.nes" + "nes"  →  "nes_Super_Mario"
+   هذا يضمن أن ملفات الحفظ تُستعاد حتى لو تغيّر حجم الملف أو مساره */
+function makeGameId(fname, sysId) {
+  // إزالة الامتداد ثم استبدال أي رمز غير حرف/رقم بـ underscore
+  const base = fname.replace(/\.[^.]+$/, '');
+  const clean = base
+    .replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') // أحرف عربية + لاتينية + أرقام فقط
+    .replace(/_+/g, '_')                          // دمج underscores المتتالية
+    .replace(/^_+|_+$/g, '');                     // حذف underscore من البداية/النهاية
+  return sysId + '_' + (clean || 'rom');
+}
+
+// [MODIFIED] mkLocal يستخدم makeGameId بدلاً من الحجم
+function mkLocal(fname,sysId,size,src){
+  const title=fname.replace(/\.[^.]+$/,'').replace(/[_\-]/g,' ').replace(/\s+/g,' ').trim();
+  const id=makeGameId(fname, sysId);
+  return{id,title,file:fname,system:sysId,size:size||0,ext:'.'+fname.split('.').pop().toLowerCase(),_src:src};
+}
+
+async function scanZip(file){
+  if(typeof JSZip==='undefined')throw new Error('JSZip not loaded');
+  const data=await file.arrayBuffer();const zip=await JSZip.loadAsync(data);const games=[];
+  zip.forEach((p,e)=>{
+    if(e.dir)return;const ext='.'+p.toLowerCase().split('.').pop();if(!EXT_MAP[ext])return;
+    const n=p.split('/').pop();const g=mkLocal(n,EXT_MAP[ext],0,'zip');
+    // [MODIFIED] ID يعتمد على اسم ملف ROM الداخلي فقط، لا اسم ملف ZIP
+    g.id = makeGameId(n, EXT_MAP[ext]);
+    localZipMap.set(g.id,{file,path:p});games.push(g);
+  });
+  return games;
+}
+
+let _7z=null;
+async function get7z(){
+  if(_7z)return _7z;
+  _7z=await import('https://cdn.jsdelivr.net/npm/7zip-wasm@1.4.10/index.js');return _7z;
+}
+async function scan7z(file){
+  const mod=await get7z();const data=await file.arrayBuffer();
+  const ex=await mod.createExtractorFromData({data});
+  const{files:hdrs}=ex.getFileList();const games=[];
+  for(const h of hdrs){
+    if(h.isDirectory)continue;const ext='.'+h.name.toLowerCase().split('.').pop();if(!EXT_MAP[ext])continue;
+    const n=h.name.split('/').pop();const g=mkLocal(n,EXT_MAP[ext],h.originalSize||0,'7z');
+    // [MODIFIED] ID يعتمد على اسم ملف ROM الداخلي فقط، لا اسم ملف 7z
+    g.id = makeGameId(n, EXT_MAP[ext]);
+    local7zMap.set(g.id,{file,path:h.name});games.push(g);
+  }
+  return games;
+}
+
+async function getLocalBlob(game){
+  if(localFileMap.has(game.id))return localFileMap.get(game.id);
+  if(localZipMap.has(game.id)){
+    const{file,path}=localZipMap.get(game.id);const data=await file.arrayBuffer();
+    const zip=await JSZip.loadAsync(data);const e=zip.file(path);if(!e)throw new Error('ZIP entry not found');
+    return new Blob([await e.async('blob')],{type:'application/octet-stream'});
+  }
+  if(local7zMap.has(game.id)){
+    const{file,path}=local7zMap.get(game.id);const mod=await get7z();const data=await file.arrayBuffer();
+    const ex=await mod.createExtractorFromData({data});const res=ex.extract({files:[path]});
+    const f=[...res.files].find(f=>f.fileHeader.name===path);
+    if(!f?.extraction)throw new Error('7z entry not found');
+    return new Blob([f.extraction],{type:'application/octet-stream'});
+  }
+  return null;
+}
+
+function clearLocal(){
+  if(!confirm('مسح جميع الألعاب المحلية؟'))return;
+  GAMES=GAMES.filter(g=>!['local','zip','7z'].includes(g._src));localFileMap.clear();localZipMap.clear();local7zMap.clear();localCount=0;folderName='';
+  updateFolderUI();refreshAll();toast('🗑 تم المسح');
+}
+
+function updateFolderUI(){
+  const badge=document.getElementById('fldr-badge');
+  const clearRow=document.getElementById('stg-clear-row');
+  const fmClear=document.getElementById('fm-clear');
+  const fldInfo=document.getElementById('stg-folder-info');
+  if(localCount>0){
+    badge.textContent=localCount>99?'99+':localCount;badge.classList.add('on');
+    clearRow.style.display='flex';fmClear.style.display='flex';
+    const zipC=[...localZipMap.keys()].filter(k=>GAMES.find(g=>g.id===k)).length;
+    const szC=[...local7zMap.keys()].filter(k=>GAMES.find(g=>g.id===k)).length;
+    fldInfo.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:12px 15px;background:rgba(60,255,160,.05);border-bottom:1px solid rgba(60,255,160,.1)">
+      <div style="font-size:20px">📂</div>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--tx0);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(folderName||'ملفات محلية')}</div>
+      <div style="font-size:11px;color:var(--tx2);margin-top:2px">${localCount} لعبة${zipC?' · '+zipC+' ZIP':''}${szC?' · '+szC+' 7z':''}</div></div>
+    </div>`;
+  }else{badge.classList.remove('on');clearRow.style.display='none';fmClear.style.display='none';fldInfo.innerHTML=''}
+  const wl=document.getElementById('welcome'),gs=document.getElementById('h-games-sec');
+  if(GAMES.length>0){wl.style.display='none';gs.style.display='block'}
+  else{wl.style.display='flex';gs.style.display='none'}
+}
+
+/* ══ DRAG & DROP ══ */
+let _dc=0;
+document.addEventListener('dragenter',e=>{e.preventDefault();_dc++;if(_dc===1)document.getElementById('drop-overlay').classList.add('on')});
+document.addEventListener('dragleave',()=>{_dc--;if(_dc<=0){_dc=0;document.getElementById('drop-overlay').classList.remove('on')}});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',async e=>{
+  e.preventDefault();_dc=0;document.getElementById('drop-overlay').classList.remove('on');
+  const items=[];
+  async function walk(entry,path=''){
+    if(entry.isFile)await new Promise(r=>entry.file(f=>{items.push({file:f,path:path||f.name});r()},r));
+    else if(entry.isDirectory){const rd=entry.createReader();await new Promise(r=>rd.readEntries(async es=>{for(const s of es)await walk(s,(path?path+'/':'')+s.name);r()}))}
+  }
+  for(const item of e.dataTransfer.items){
+    if(item.kind==='file'){const en=item.webkitGetAsEntry?.();
+      if(en){if(en.isDirectory)folderName=en.name;await walk(en)}
+      else{const f=item.getAsFile();if(f)items.push({file:f,path:f.name})}}
+  }
+  if(items.length)await processLocalFiles(items);
+});
+
+/* ══ FOLDER MENU ══ */
+function showFolderMenu(){document.getElementById('folder-menu').style.display='block';document.getElementById('folder-menu-bg').style.display='block'}
+function closeFolderMenu(){document.getElementById('folder-menu').style.display='none';document.getElementById('folder-menu-bg').style.display='none'}
+
+/* ══ GITHUB ══ */
+function autoDetectGH(){const m=window.location.href.match(/https?:\/\/([^.]+)\.github\.io\/([^/?#]+)/);if(m&&!cfgCloud.owner){cfgCloud.owner=m[1];cfgCloud.repo=m[2]}}
+function ghRaw(){if(!cfgCloud.owner||!cfgCloud.repo)return '';return `https://raw.githubusercontent.com/${cfgCloud.owner}/${cfgCloud.repo}/${cfgCloud.branch||'main'}`}
+function getRomUrl(game){if(game.url)return game.url;const raw=ghRaw(),f=cfgCloud.folder||'roms';return cfgProxy?cfgProxy+encodeURIComponent(raw+'/'+f+'/'+game.file):(raw?raw+'/'+f+'/'+game.file:f+'/'+game.file)}
+
+async function scanRoms(manual=false){
+  const{owner,repo,branch='main',folder='roms',token=''}=cfgCloud;
+  const btn=document.getElementById('sync-btn');btn.classList.add('spin');
+  setStatus('جاري مسح '+folder+'...','spin');
+  try{
+    let files=[];
+    if(owner&&repo){
+      const url=`https://api.github.com/repos/${owner}/${repo}/contents/${folder}?ref=${branch}`;
+      const hd={'Accept':'application/vnd.github.v3+json'};if(token)hd['Authorization']='token '+token;
+      const r=await fetch(url,{headers:hd});
+      if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'HTTP '+r.status)}
+      const d=await r.json();if(!Array.isArray(d))throw new Error('المسار ليس مجلداً');
+      files=d.filter(f=>f.type==='file').map(f=>({name:f.name,size:f.size})).filter(f=>!!EXT_MAP['.'+f.name.split('.').pop().toLowerCase()]);
+    }else{
+      try{const r=await fetch('./games.json');if(r.ok){const d=await r.json();if(d.games){loadGamesJson(d);return}}}catch{}
+      if(manual){setStatus('حدد GitHub في الإعدادات','warn');document.getElementById('status-act').style.display='block';btn.classList.remove('spin');return}
+    }
+    const cg=files.map(f=>{const ext='.'+f.name.split('.').pop().toLowerCase();const sid=EXT_MAP[ext]||'nes';
+      const title=f.name.replace(/\.[^.]+$/,'').replace(/[_-]/g,' ').trim();
+      // [MODIFIED] ID يعتمد على اسم الملف والنظام فقط، لا مساره الكامل في GitHub
+      const id=makeGameId(f.name, sid);
+      return{id,title,file:f.name,system:sid,size:f.size||0,ext,_src:'cloud'};
+    });
+    GAMES=GAMES.filter(g=>g._src!=='cloud');GAMES.push(...cg);
+    setStatus(`✅ ${cg.length} سحابية`+(localCount?` + ${localCount} محلية`:''),'ok');
+    document.getElementById('status-act').style.display='none';
+    if(manual)toast('☁️ '+cg.length+' لعبة');
+    refreshAll();
+  }catch(e){setStatus('❌ '+e.message,'err');if(manual)toast('❌ '+e.message,4000)}
+  finally{btn.classList.remove('spin')}
+}
+
+function loadGamesJson(data){
+  if(!data.games)return;
+  // [MODIFIED] عند غياب id صريح في JSON، يُولَّد ID موحّد بـ makeGameId
+  const gs=data.games.map(g=>({
+    id:g.id||makeGameId(g.file, g.system||'nes'),
+    title:g.title||g.file,file:g.file,system:g.system||'nes',
+    size:g.size||0,cover:g.cover||null,year:g.year,genre:g.genre,
+    ext:'.'+g.file.split('.').pop().toLowerCase(),_src:'cloud'
+  }));
+  GAMES=GAMES.filter(g=>g._src!=='cloud');GAMES.push(...gs);
+  setStatus('✅ '+gs.length+' من games.json','ok');refreshAll();
+}
+
+/* ══ RENDER ══ */
+function refreshAll(){
+  const total=GAMES.length,sysC=new Set(GAMES.map(g=>g.system)).size;
+  const locC=GAMES.filter(g=>['local','zip','7z'].includes(g._src)).length;
+  document.getElementById('stat-g').textContent=total;
+  document.getElementById('stat-s').textContent=sysC;
+  document.getElementById('h-g').textContent=total;
+  document.getElementById('h-s').textContent=sysC;
+  document.getElementById('h-l').textContent=locC;
+  document.getElementById('tg-cnt').textContent=total;
+  document.getElementById('tf-cnt').textContent=favs.size;
+  updateFolderUI();
+  const cur=document.querySelector('.screen.on')?.id;
+  if(cur==='screen-home')renderHome();
+  else if(cur==='screen-games')renderGames();
+  else if(cur==='screen-systems')renderSystems();
+  else if(cur==='screen-fav')renderFav();
+  else if(cur==='screen-console'&&curConsole)renderConsole(curConsole);
+  else renderHome();
+}
+
+function renderHome(){
+  const f=curFilter,list=f==='all'?[...GAMES]:GAMES.filter(g=>g.system===f);
+  document.getElementById('h-cnt').textContent=list.length;
+  buildChips('h-chips',GAMES,f,'setFilter');
+  renderGrid('h-grid',list.slice(0,60));
+  // Also refresh free games grid if loaded
+  if(freeGamesLoaded)renderGrid('free-grid',GAMES.filter(g=>g._free));
+}
+function renderGames(){
+  const f=curFilter,list=f==='all'?[...GAMES]:GAMES.filter(g=>g.system===f);
+  document.getElementById('g-cnt').textContent=list.length;
+  buildChips('g-chips',GAMES,f,'setFilter');
+  renderGrid('g-grid',list);
+}
+function renderFav(){
+  const list=GAMES.filter(g=>isFav(g.id));
+  document.getElementById('tf-cnt').textContent=list.length;
+  renderGrid('fav-grid',list);
+}
+
+function renderSystems(){
+  const sys={};GAMES.forEach(g=>{if(!sys[g.system])sys[g.system]=0;sys[g.system]++});
+  document.getElementById('sys-grid').innerHTML=Object.entries(sys).map(([sid,cnt])=>{
+    const s=getSys(sid);
+    return`<div class="sys-card" style="--c:${s.col}" onclick="navConsole('${sid}')">
+      <div class="sys-card-bg" style="--con-pat:${s.pat||'none'}"></div>
+      <div class="sys-card-ico">${s.ico}</div>
+      <div class="sys-card-badge">${s.era||''}</div>
+      <div class="sys-card-body">
+        <div class="sys-card-name">${s.n}</div>
+        <div class="sys-card-full">${s.f}</div>
+        <div class="sys-card-footer">
+          <span class="sys-card-cnt">${cnt} ROM</span>
+          <span class="perf-pill ${PERF_CLS[s.perf]||'p1'}">${PERF[s.perf]||''}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Console Page ── */
+function navConsole(sysId){
+  curConsole=sysId;
+  const s=getSys(sysId);
+  // Apply theme vars
+  document.documentElement.style.setProperty('--con-a',s.cb||s.col);
+  document.documentElement.style.setProperty('--con-b',s.col);
+  document.documentElement.style.setProperty('--con-bg',s.bg||'#07070d');
+  document.documentElement.style.setProperty('--con-pat',s.pat||'none');
+  // Hero
+  document.getElementById('con-hero').style.background=s.grad||s.bg||'var(--bg0)';
+  document.getElementById('con-big-ico').textContent=s.ico;
+  document.getElementById('con-era').textContent=s.era||'';
+  document.getElementById('con-name').textContent=s.f;
+  document.getElementById('con-tagline').textContent=s.tagline||'';
+  const games=GAMES.filter(g=>g.system===sysId);
+  document.getElementById('con-stat-games').textContent=games.length;
+  document.getElementById('con-stat-perf').textContent=PERF[s.perf]?.replace(/[⚡🔥💀]/g,'').trim()||'—';
+  document.getElementById('con-stat-core').textContent=(coreOverrides[sysId]||s.core||'—').toUpperCase();
+  document.getElementById('con-search').value='';
+  // Apply con-a color to hero elements
+  document.getElementById('con-era').style.color=`color-mix(in srgb,${s.cb||s.col} 85%,white)`;
+  document.getElementById('con-name').style.textShadow=`0 0 60px color-mix(in srgb,${s.cb||s.col} 80%,transparent)`;
+  ['con-stat-games','con-stat-perf','con-stat-core'].forEach(id=>{
+    document.getElementById(id).style.color=s.cb||s.col;
+    document.getElementById(id).style.textShadow=`0 0 20px color-mix(in srgb,${s.cb||s.col} 70%,transparent)`;
+  });
+  document.getElementById('con-search').style.setProperty('--con-a',s.cb||s.col);
+  renderConsole(sysId);
+  // Apply saved skin
+  applyConsoleSkinToHero(sysId);
+  // Show console screen
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.getElementById('screen-console').classList.add('on');
+  window.scrollTo(0,0);
+}
+
+function renderConsole(sysId,q=''){
+  let list=GAMES.filter(g=>g.system===sysId);
+  if(q)list=list.filter(g=>g.title.toLowerCase().includes(q.toLowerCase()));
+  renderGrid('con-grid',list);
+}
+function filterConsole(q){renderConsole(curConsole,q)}
+
+function navBack(){
+  curConsole='';
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));
+  document.getElementById('screen-systems').classList.add('on');
+  document.getElementById('tab-systems').classList.add('on');
+}
+
+/* ── Chips ── */
+function buildChips(id,games,active,fn){
+  const el=document.getElementById(id);if(!el)return;
+  const sys={};games.forEach(g=>{if(!sys[g.system])sys[g.system]=0;sys[g.system]++});
+  let h=`<button class="chip ${active==='all'?'on':''}" onclick="${fn}('all',this)">الكل (${games.length})</button>`;
+  const has={local:games.some(g=>g._src==='local'||g._src==='zip'||g._src==='7z'),cloud:games.some(g=>g._src==='cloud')};
+  if(has.local)h+=`<button class="chip" onclick="filterSrc('local',this)" style="color:var(--ok)">📂 محلي</button>`;
+  if(has.cloud)h+=`<button class="chip" onclick="filterSrc('cloud',this)" style="color:var(--acc)">☁️ سحابي</button>`;
+  Object.entries(sys).sort((a,b)=>b[1]-a[1]).forEach(([sid,cnt])=>{const s=getSys(sid);h+=`<button class="chip ${active===sid?'on':''}" onclick="${fn}('${sid}',this)">${s.ico} ${s.n} (${cnt})</button>`});
+  el.innerHTML=h;
+}
+function setFilter(f,btn){
+  curFilter=f;
+  ['h-chips','g-chips'].forEach(id=>{
+    document.querySelectorAll('#'+id+' .chip').forEach(b=>b.classList.remove('on'));
+    const t=btn||document.querySelector(`#${id} .chip[onclick*="'${f}'"]`);
+    if(t&&t.closest('#'+id))t.classList.add('on');
+  });
+  const cur=document.querySelector('.screen.on')?.id;
+  if(cur==='screen-home')renderHome();
+  if(cur==='screen-games')renderGames();
+}
+function filterSrc(src,btn){
+  document.querySelectorAll('.chip').forEach(b=>b.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  const list=GAMES.filter(g=>src==='local'?['local','zip','7z'].includes(g._src):g._src===src);
+  const cur=document.querySelector('.screen.on')?.id;
+  if(cur==='screen-home')renderGrid('h-grid',list.slice(0,60));
+  else renderGrid('g-grid',list);
+}
+
+/* ── Card ── */
+function renderGrid(containerId,games){
+  const el=document.getElementById(containerId);if(!el)return;
+  if(!games.length){
+    el.innerHTML=`<div class="empty">
+      <div class="empty-ico">🎮</div>
+      <div class="empty-title">لا توجد ألعاب</div>
+      <div class="empty-sub">اختر مجلداً أو ملفات ROM من الجهاز<br>
+        <button class="pick-btn" style="margin-top:10px;height:36px;font-size:12px" onclick="pickFolder()">📂 اختر مجلد</button>
+      </div>
+    </div>`;
+    return;
+  }
+  el.innerHTML=games.map((g,i)=>buildCard(g,i)).join('');
+  requestAnimationFrame(()=>games.forEach(g=>activateCard(g)));
+}
+
+function buildCard(g,i){
+  const s=getSys(g.system);
+  const srcBadge=g._src==='zip'?`<span class="src-badge zip">ZIP</span>`:g._src==='7z'?`<span class="src-badge sz">7z</span>`:g._src==='local'?`<span class="src-badge local">LOCAL</span>`:g._src==='cloud'?`<span class="src-badge cloud">CLOUD</span>`:'';
+  return`<div class="gcard" style="--c:${s.col};animation-delay:${Math.min(i,20)*12}ms" id="gcard-${g.id}" onclick="openGameDetail('${g.id}')">
+    <div class="gcard-art" id="gart-${g.id}">
+      <canvas id="gcvs-${g.id}" class="gcard-canvas" width="200" height="280"></canvas>
+      <img id="gimg-${g.id}" class="gcard-img" alt="" crossorigin="anonymous">
+      <span class="sys-badge">${s.n}</span>
+      <button class="fav-btn ${isFav(g.id)?'on':''}" id="fav-${g.id}" onclick="toggleFav('${g.id}');event.stopPropagation()">${isFav(g.id)?'❤':'♡'}</button>
+      <div class="gcard-hover"><div class="play-circle">▶</div><div class="hover-hint">PRESS TO PLAY</div></div>
+      ${srcBadge}
+    </div>
+    <div class="gcard-info">
+      <div class="gcard-name" title="${esc(g.title)}">${esc(g.title)}</div>
+      <div class="gcard-meta"><span class="gcard-sys">${s.n}</span><span class="gcard-yr">${g.year||''}</span></div>
+    </div>
+  </div>`;
+}
+
+function activateCard(g){
+  const s=getSys(g.system);
+  const cv=document.getElementById('gcvs-'+g.id);
+  const im=document.getElementById('gimg-'+g.id);
+  const art=document.getElementById('gart-'+g.id);
+  if(cv)cv.getContext('2d').drawImage(genCover(g.title,s.col,s.ico,200,280),0,0);
+  if(!cfgArt||!im)return;
+  if(g.cover){im.onload=()=>{im.classList.add('loaded');document.getElementById('gart-'+g.id)?.classList.add('art-done')};im.src=g.cover;return}
+  getArt(g.title,g.system).then(url=>{if(url&&im){im.onload=()=>im.classList.add('loaded');im.src=url}});
+}
+
+function toggleFav(id){
+  favs.has(id)?favs.delete(id):favs.add(id);saveFavs();
+  document.querySelectorAll(`#fav-${id}`).forEach(b=>{b.classList.toggle('on',favs.has(id));b.textContent=favs.has(id)?'❤':'♡'});
+  document.getElementById('tf-cnt').textContent=favs.size;
+  // Update detail page fav button if open
+  if(detailGameId===id){
+    const fb=document.getElementById('gd-fav-btn');if(fb){fb.textContent=isFav(id)?'❤':'♡';fb.classList.toggle('on',isFav(id))}}
+  toast(favs.has(id)?'❤ أُضيف للمفضلة':'💔 أُزيل من المفضلة');
+}
+
+/* ══ GAME DETAIL PAGE ══ */
+function openGameDetail(id){
+  const game=GAMES.find(g=>g.id===id);if(!game)return;
+  detailGameId=id;
+  const sys=getSys(game.system);
+  const gd=document.getElementById('game-detail');
+  // Color
+  gd.style.setProperty('--gd-c',sys.col);
+  document.getElementById('gd-art-frame').style.setProperty('--gd-c',sys.col);
+  document.getElementById('gd-play-btn').style.setProperty('--gd-c',sys.col);
+  // Bar title
+  document.getElementById('gd-bar-title').textContent=game.title;
+  // Fav button
+  const fb=document.getElementById('gd-fav-btn');fb.textContent=isFav(id)?'❤':'♡';fb.classList.toggle('on',isFav(id));
+  // Canvas cover
+  const cv=document.getElementById('gd-canvas');
+  cv.width=280;cv.height=374;cv.getContext('2d').drawImage(genCover(game.title,sys.col,sys.ico,280,374),0,0);
+  // Art image
+  const im=document.getElementById('gd-art-img');im.src='';im.className='gd-art-img';
+  // Blur BG
+  const blur=document.getElementById('gd-blur');blur.style.backgroundImage='none';
+  // System info
+  document.getElementById('gd-sys-icon').textContent=sys.ico;
+  document.getElementById('gd-sys-name').textContent=sys.n;
+  // Title
+  document.getElementById('gd-title').textContent=game.title;
+  // Badges
+  const srcLabels={local:'📂 ملف محلي',zip:'🗜 مضغوط ZIP',sz:'🗜 مضغوط 7z',cloud:'☁️ سحابي'};
+  const srcCls={local:'gd-badge-src-local',zip:'gd-badge-src-zip',sz:'gd-badge-src-sz',cloud:'gd-badge-src-cloud'};
+  document.getElementById('gd-badges').innerHTML=`
+    <span class="gd-badge gd-badge-sys">${sys.ico} ${sys.f}</span>
+    ${game._src?`<span class="gd-badge ${srcCls[game._src]||''}">${srcLabels[game._src]||''}</span>`:''}
+    <span class="gd-badge ${['','p1','p2','p3','p4'][sys.perf]||'p1'}" style="border-radius:20px">${PERF[sys.perf]||''}</span>
+  `;
+  // Meta grid
+  document.getElementById('gd-meta').innerHTML=`
+    <div class="gd-meta-item"><div class="gd-meta-lbl">النظام</div><div class="gd-meta-val">${sys.f}</div></div>
+    <div class="gd-meta-item"><div class="gd-meta-lbl">الحجم</div><div class="gd-meta-val">${fmtSize(game.size)}</div></div>
+    <div class="gd-meta-item"><div class="gd-meta-lbl">الحقبة</div><div class="gd-meta-val">${sys.era||'—'}</div></div>
+    <div class="gd-meta-item"><div class="gd-meta-lbl">Core</div><div class="gd-meta-val" style="font-family:var(--mono);font-size:11px">${(coreOverrides[game.system]||sys.core||'—').toUpperCase()}</div></div>
+  `;
+  // Open
+  gd.classList.add('open');document.body.style.overflow='hidden';
+  // [MODIFIED] إصلاح مفتاح الكاش: كان يستخدم sys.n بدل game.system مما يسبب cache miss
+  const artKey=game.system+'|'+game.title;
+  if(artCache.has(artKey)&&artCache.get(artKey)){
+    const url=artCache.get(artKey);
+    im.onload=()=>{im.classList.add('loaded');blur.style.backgroundImage=`url('${url}')`};im.src=url;
+  }else{
+    getArt(game.title,game.system).then(url=>{
+      if(url){im.onload=()=>{im.classList.add('loaded');blur.style.backgroundImage=`url('${url}')`};im.src=url}
+    });
+  }
+}
+
+function closeGameDetail(){
+  document.getElementById('game-detail').classList.remove('open');
+  document.body.style.overflow='';
+  detailGameId=null;
+}
+function toggleFavFromDetail(){if(detailGameId)toggleFav(detailGameId)}
+function launchFromDetail(){if(detailGameId){const _id=detailGameId;closeGameDetail();setTimeout(()=>playGame(_id),400)}}
+
+/* ══ NAVIGATION ══ */
+function nav(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('screen-'+id)?.classList.add('on');
+  document.getElementById('tab-'+id)?.classList.add('on');
+  if(id!=='home')document.getElementById('search').value='';
+  if(id==='games')renderGames();
+  if(id==='systems')renderSystems();
+  if(id==='fav')renderFav();
+  if(id==='home')renderHome();
+  curConsole='';window.scrollTo(0,0);
+}
+
+function onSearch(q){
+  const ql=q.toLowerCase().trim();if(!ql){nav('home');return}
+  nav('games');
+  const res=GAMES.filter(g=>g.title.toLowerCase().includes(ql)||g.system.includes(ql));
+  document.getElementById('g-cnt').textContent=res.length+' نتيجة';
+  renderGrid('g-grid',res);
+}
+
+/* ══ PLAY ══ */
+async function playGame(id){
+  const game=GAMES.find(g=>g.id===id);if(!game){toast('❌ اللعبة غير موجودة');return}
+  const sys=getSys(game.system);activeGame=game;
+  if(sys.perf>=3&&document.getElementById('t-perf').classList.contains('on')){
+    if(!confirm(`⚠️ ${sys.n}: ${PERF[sys.perf]}\n${sys.warn||'قد يعمل ببطء'}\n\nالاستمرار؟`))return;
+  }
+  const emu=document.getElementById('emu');emu.classList.add('on');document.body.style.overflow='hidden';
+  document.getElementById('emu-load').classList.remove('gone');
+  document.getElementById('emu-err').classList.remove('on');
+  document.getElementById('emu-title').textContent=game.title;
+  document.getElementById('emu-sys-lbl').textContent=sys.f;
+  document.getElementById('lp-title').textContent=game.title;
+  document.getElementById('lp-sys').textContent=sys.f;
+  document.getElementById('emu-as').className='emu-as'+(document.getElementById('t-as').classList.contains('on')?' on':'');
+  const lc=document.getElementById('lp-cvs'),li=document.getElementById('lp-img');
+  lc.width=96;lc.height=132;lc.getContext('2d').drawImage(genCover(game.title,sys.col,sys.ico,96,132),0,0);
+  li.style.display='none';lc.style.display='block';
+  getArt(game.title,game.system).then(url=>{if(url&&li){li.onload=()=>{li.style.display='block';lc.style.display='none'};li.src=url}});
+  const core=coreOverrides[game.system]||sys.core;const biosUrl=biosUrls[game.system]||'';
+  try{
+    let romUrl;
+    const lb=await getLocalBlob(game);
+    if(lb){
+      document.getElementById('lp-status').textContent='⏳ تحضير الملف المحلي...';
+      romUrl=URL.createObjectURL(lb);blobUrls.push(romUrl);
+      document.getElementById('lp-status').textContent='✅ جاهز';
+    }else{
+      document.getElementById('lp-status').textContent='⏳ جاري التحميل...';
+      const url=getRomUrl(game);if(!url)throw new Error('لم يتم تحديد مصدر للعبة');
+      const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status);
+      document.getElementById('lp-status').textContent='⏳ تحضير...';
+      const data=await r.arrayBuffer();
+      const rb=new Blob([data],{type:'application/octet-stream'});romUrl=URL.createObjectURL(rb);blobUrls.push(romUrl);
+      document.getElementById('lp-status').textContent='✅ جاهز';
+    }
+    await sl(200);
+    const html=buildEmuHtml(romUrl,game.title,core,sys.col,game.id,biosUrl);
+    const hu=URL.createObjectURL(new Blob([html],{type:'text/html'}));blobUrls.push(hu);
+    const fr=document.getElementById('emu-frame');
+    fr.onload=()=>{setTimeout(()=>document.getElementById('emu-load').classList.add('gone'),2800);if(document.getElementById('t-as').classList.contains('on'))startAS()};
+    fr.src=hu;
+  }catch(e){
+    document.getElementById('emu-load').classList.add('gone');
+    const tips=['• '+e.message];
+    if(!localFileMap.has(game.id)&&!localZipMap.has(game.id)&&!local7zMap.has(game.id))
+      tips.push('• حمّل الملف محلياً أو تحقق من GitHub');
+    if(game._src==='7z')tips.push('• ملفات 7z تحتاج Chrome/Edge الحديث');
+    showErr(tips);
+  }
+}
+
+function buildEmuHtml(romUrl,name,core,color,gameId,biosUrl){
+  const sn=name.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+  return`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;background:#000;overflow:hidden}#e{width:100%;height:100%}canvas{image-rendering:pixelated}</style></head><body><div id="e"></div>
+<script>
+window.EJS_player="#e";window.EJS_gameName=\`${sn}\`;window.EJS_biosUrl="${biosUrl}";window.EJS_gameUrl="${romUrl}";window.EJS_core="${core}";window.EJS_pathtodata="${cfgEjs}";window.EJS_startOnLoaded=true;window.EJS_color="${color}";window.EJS_backgroundColor="#000";window.EJS_defaultOptions={"save-state-slot":"1","save-state-location":"keep in browser"};window.EJS_Buttons={playPause:1,restart:1,mute:1,settings:1,fullscreen:1,saveState:1,loadState:1,gamepad:1,volume:1,saveSavFiles:1,loadSavFiles:1,screenshot:1,cheat:1};window.EJS_onGameStart=()=>window.parent.postMessage({t:'ok',id:'${gameId}'},'*');window.EJS_onSaveState=()=>window.parent.postMessage({t:'saved'},'*');window.EJS_onLoadState=()=>window.parent.postMessage({t:'loaded'},'*');window.EJS_onLoadError=(e)=>window.parent.postMessage({t:'err',m:e},'*');window.addEventListener('message',e=>{if(!e.data)return;try{if(e.data.t==='save')EJS_emulator.gameManager.saveState(e.data.s||0);if(e.data.t==='load')EJS_emulator.gameManager.loadState(e.data.s||0)}catch{}});
+<\/script><script src="${cfgEjs}loader.js"><\/script></body></html>`;
+}
+
+window.addEventListener('message',e=>{
+  if(!e.data?.t)return;
+  if(e.data.t==='ok')document.getElementById('emu-load').classList.add('gone');
+  if(e.data.t==='err'){document.getElementById('emu-load').classList.add('gone');showErr(['فشل المحاكي','تحقق من CDN','الخطأ: '+e.data.m])}
+  if(e.data.t==='saved'){const b=document.getElementById('btn-save');b.textContent='✅';b.classList.add('saved');setTimeout(()=>{b.textContent='💾';b.classList.remove('saved')},1800)}
+  if(e.data.t==='loaded')toast('✅ تم تحميل الحالة');
+});
+function showErr(tips){document.getElementById('emu-err').classList.add('on');document.getElementById('err-list').innerHTML=tips.map(t=>`<li>${esc(t)}</li>`).join('')}
+function closeErr(){document.getElementById('emu-err').classList.remove('on')}
+function exitEmu(){
+  if(!confirm('الخروج؟'))return;doSave();
+  setTimeout(()=>{
+    clearAS();const fr=document.getElementById('emu-frame');fr.src='about:blank';
+    document.getElementById('emu').classList.remove('on');document.body.style.overflow='';
+    blobUrls.forEach(u=>URL.revokeObjectURL(u));blobUrls=[];
+    activeGame=null;document.getElementById('qp').classList.remove('open');
+    document.getElementById('lp-img').style.display='none';document.getElementById('lp-cvs').style.display='block';
+    document.getElementById('emu-err').classList.remove('on');if(window.gc)window.gc();
+  },500);
+}
+
+/* ══ SAVE/LOAD/FS ══ */
+function trigSave(){try{document.getElementById('emu-frame').contentWindow.postMessage({t:'save',s:saveSlot-1},'*')}catch{}}
+function doSave(){trigSave();toast('💾 Slot '+saveSlot)}
+function doLoad(){try{document.getElementById('emu-frame').contentWindow.postMessage({t:'load',s:saveSlot-1},'*')}catch{}toast('📂 Slot '+saveSlot)}
+function doFS(){const c=document.getElementById('emu-content');document.fullscreenElement?document.exitFullscreen?.():c.requestFullscreen?.().catch(()=>{})}
+function startAS(){clearAS();if(!document.getElementById('t-as').classList.contains('on'))return;asTimer=setInterval(()=>{if(document.getElementById('emu').classList.contains('on'))trigSave()},60000)}
+function clearAS(){if(asTimer){clearInterval(asTimer);asTimer=null}}
+function toggleQP(){document.getElementById('qp').classList.toggle('open')}
+
+/* ══ SHADERS ══ */
+function setShader(id){
+  cfgShader=id;const c=document.getElementById('emu-content');c.className='';
+  if(id!=='none')c.classList.add('crt-'+id);
+  document.querySelectorAll('.sh-mini,.shader-opt').forEach(b=>b.classList.toggle('on',b.dataset.shader===id));saveCfg();
+}
+
+/* ══ GAMEPAD UI ══ */
+function toggleGpUi(){
+  cfgGpUi=!cfgGpUi;document.getElementById('gp-ov').classList.toggle('on',cfgGpUi);
+  document.getElementById('t-gp').classList.toggle('on',cfgGpUi);
+  document.getElementById('gp-show-btn').style.display=cfgGpUi?'none':'grid';saveCfg();
+}
+function gpP(el){el.classList.add('p');const k=el.dataset.k;if(k)try{document.getElementById('emu-frame').contentWindow.dispatchEvent(new KeyboardEvent('keydown',{key:k,bubbles:true,cancelable:true}))}catch{}}
+function gpR(el){el.classList.remove('p');const k=el.dataset.k;if(k)try{document.getElementById('emu-frame').contentWindow.dispatchEvent(new KeyboardEvent('keyup',{key:k,bubbles:true,cancelable:true}))}catch{}}
+
+/* ══ SETTINGS ══ */
+function openSettings(){document.getElementById('settings-panel').classList.add('open');buildSettings()}
+function closeSettings(){document.getElementById('settings-panel').classList.remove('open')}
+function buildSettings(){
+  document.getElementById('shader-grid').innerHTML=SHADERS.map(s=>`<div class="shader-opt ${cfgShader===s.id?'on':''}" data-shader="${s.id}" onclick="setShader('${s.id}')"><div class="sh-ico">${s.ico}</div>${s.label}</div>`).join('');
+  document.getElementById('qp-shaders').innerHTML=SHADERS.map(s=>`<div class="sh-mini ${cfgShader===s.id?'on':''}" data-shader="${s.id}" onclick="setShader('${s.id}')">${s.label}</div>`).join('');
+  document.getElementById('core-overrides').innerHTML=Object.entries(SYS).map(([sid,s])=>s.cores.length<2?'':
+    `<div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;color:var(--tx2);width:50px;flex-shrink:0">${s.n}</span>
+    <select class="stg-select" style="flex:1" onchange="coreOverrides['${sid}']=this.value;saveCfg()">
+      ${s.cores.map(c=>`<option value="${c}" ${(coreOverrides[sid]||s.core)===c?'selected':''}>${c}</option>`).join('')}
+    </select></div>`).filter(Boolean).join('');
+  const bg=document.getElementById('bios-group');
+  const bn=Object.entries(SYS).filter(([,s])=>s.bios);
+  bg.innerHTML=bn.map(([sid,s])=>`<div class="stg-row"><div class="stg-ico">${s.ico}</div><div class="stg-info"><div class="stg-info-title">${s.n} BIOS</div><div class="stg-info-sub">${s.bios}</div></div></div>
+    <div class="stg-input-row"><input class="stg-input" id="bios-${sid}" placeholder="URL" value="${biosUrls[sid]||''}" onchange="biosUrls['${sid}']=this.value;saveCfg()"></div>`).join('');
+  if(!bn.length)bg.innerHTML='<div class="stg-row" style="cursor:default"><div class="stg-ico">✅</div><div class="stg-info"><div class="stg-info-title">لا BIOS مطلوب</div></div></div>';
+}
+function updateRepoLbl(){const o=document.getElementById('s-owner').value.trim(),r=document.getElementById('s-repo').value.trim();document.getElementById('s-repo-lbl').textContent=o&&r?o+'/'+r:'AUTO'}
+function saveCloud(){cfgCloud.owner=document.getElementById('s-owner').value.trim();cfgCloud.repo=document.getElementById('s-repo').value.trim();cfgCloud.token=document.getElementById('s-token').value.trim();cfgCloud.folder=document.getElementById('s-folder').value.trim()||'roms';saveCfg();toast('✅ حُفظت الإعدادات');scanRoms(true)}
+function saveCDN(){cfgEjs=document.getElementById('s-ejs').value.trim();saveCfg();toast('✅ CDN محفوظ')}
+function saveProxy(){cfgProxy=document.getElementById('s-proxy').value.trim();saveCfg();toast(cfgProxy?'✅ Proxy محفوظ':'⚠️ مُسح Proxy')}
+function clearProxy(){cfgProxy='';document.getElementById('s-proxy').value='';saveCfg();toast('⚠️ مُسح Proxy')}
+function toggleArt(){cfgArt=!cfgArt;document.getElementById('t-art').classList.toggle('on',cfgArt);artCache.clear();saveCfg();refreshAll();toast(cfgArt?'🖼 أغلفة مفعّلة':'🖼 أغلفة مخفية')}
+function checkWebGL(){try{const c=document.createElement('canvas');const g=c.getContext('webgl2')||c.getContext('webgl');if(!g){document.getElementById('webgl-status').textContent='❌ غير مدعوم';return}const v=c.getContext('webgl2')?'WebGL2':'WebGL1';const r=(g.getParameter(g.RENDERER)||'').substring(0,40);document.getElementById('webgl-status').textContent=`✅ ${v} — ${r}`}catch(e){document.getElementById('webgl-status').textContent='❌ '+e.message}}
+
+/* ══ GAMEPAD API ══ */
+const gpbar=document.getElementById('gp-bar');
+window.addEventListener('gamepadconnected',e=>{gpbar.textContent='🎮 '+e.gamepad.id.substring(0,30);gpbar.classList.add('on');toast('🎮 ذراع متصل');setTimeout(()=>gpbar.classList.remove('on'),4000)});
+window.addEventListener('gamepaddisconnected',()=>{gpbar.classList.remove('on');toast('🔌 ذراع منفصل')});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('game-detail').classList.contains('open'))closeGameDetail();
+    else if(document.getElementById('emu').classList.contains('on'))exitEmu();
+  }
+});
+
+/* ══ INIT ══ */
+(async()=>{
+  const fill=document.getElementById('sl-fill'),stxt=document.getElementById('sl-txt');
+  try{
+    const c=JSON.parse(localStorage.getItem('av-cfg')||'{}');
+    if(c.shader)cfgShader=c.shader;if(c.art!==undefined)cfgArt=c.art;if(c.gpUi)cfgGpUi=c.gpUi;
+    if(c.ejs)cfgEjs=c.ejs;if(c.proxy)cfgProxy=c.proxy;if(c.cloud)Object.assign(cfgCloud,c.cloud);
+    if(c.bios)biosUrls={...c.bios};if(c.cores)coreOverrides={...c.cores};
+  }catch{}
+  try{favs=new Set(JSON.parse(localStorage.getItem('av-f')||'[]'))}catch{}
+  loadSkinsFromStorage();
+  fill.style.width='20%';stxt.textContent='LOADING CONFIG...';
+  if(cfgShader!=='none')document.getElementById('emu-content').classList.add('crt-'+cfgShader);
+  if(cfgGpUi){document.getElementById('gp-ov').classList.add('on');document.getElementById('t-gp').classList.add('on');document.getElementById('gp-show-btn').style.display='none'}
+  document.getElementById('s-ejs').value=cfgEjs;
+  if(cfgProxy)document.getElementById('s-proxy').value=cfgProxy;
+  if(cfgCloud.owner){document.getElementById('s-owner').value=cfgCloud.owner;document.getElementById('s-repo-lbl').textContent=cfgCloud.owner+(cfgCloud.repo?'/'+cfgCloud.repo:'')}
+  if(cfgCloud.repo)document.getElementById('s-repo').value=cfgCloud.repo;
+  if(cfgCloud.token)document.getElementById('s-token').value=cfgCloud.token;
+  document.getElementById('s-folder').value=cfgCloud.folder||'roms';
+  document.getElementById('t-art').classList.toggle('on',cfgArt);
+  const qpsl=document.getElementById('qp-slots');
+  [1,2,3,4].forEach(i=>{const b=document.createElement('button');b.className='qp-slot'+(i===1?' on':'');b.textContent='S'+i;b.onclick=()=>{saveSlot=i;document.querySelectorAll('.qp-slot').forEach(x=>x.classList.remove('on'));b.classList.add('on')};qpsl.appendChild(b)});
+  fill.style.width='50%';stxt.textContent='DETECTING GITHUB...';autoDetectGH();
+  fill.style.width='75%';stxt.textContent='SCANNING ROMS...';
+  updateFolderUI();await scanRoms(false);
+  fill.style.width='100%';await sl(350);
+  document.getElementById('siteload').classList.add('done');
+})();
+
+/* ══════════════════════════════════════════════════════
+   CONSOLE SKINS SYSTEM
+══════════════════════════════════════════════════════ */
+
+
+const SKIN_PRESETS=[
+  {id:'dark',label:'Dark',bg:'linear-gradient(135deg,#0a0602,#1a0c04)',thumb:'linear-gradient(135deg,#0a0602,#1a0c04)'},
+  {id:'fire',label:'Fire',bg:'linear-gradient(135deg,#1a0300,#3d0800,#ff2200)',thumb:'linear-gradient(135deg,#1a0300,#ff2200)'},
+  {id:'sunset',label:'Sunset',bg:'linear-gradient(135deg,#1a0600,#5c1a00,#ff6b00,#ffaa00)',thumb:'linear-gradient(135deg,#5c1a00,#ffaa00)'},
+  {id:'ocean',label:'Ocean',bg:'linear-gradient(135deg,#001525,#003d6b,#0080ff)',thumb:'linear-gradient(135deg,#001525,#0080ff)'},
+  {id:'forest',label:'Forest',bg:'linear-gradient(135deg,#010f02,#023d08,#00a020)',thumb:'linear-gradient(135deg,#010f02,#00a020)'},
+  {id:'neon',label:'Neon',bg:'linear-gradient(135deg,#0a0015,#200040,#7c00ff)',thumb:'linear-gradient(135deg,#200040,#7c00ff)'},
+  {id:'gold',label:'Gold',bg:'linear-gradient(135deg,#1a1200,#4a3000,#c0860a)',thumb:'linear-gradient(135deg,#1a1200,#c0860a)'},
+  {id:'frost',label:'Frost',bg:'linear-gradient(135deg,#001020,#002a40,#00b4d8)',thumb:'linear-gradient(135deg,#001020,#00b4d8)'},
+];
+
+function loadSkinsFromStorage(){
+  try{consoleSkins=JSON.parse(localStorage.getItem('av-skins')||'{}')}catch{consoleSkins={}}
+}
+function saveSkinsToStorage(){
+  try{localStorage.setItem('av-skins',JSON.stringify(consoleSkins))}catch{toast('⚠️ تعذر حفظ السكن')}
+}
+
+function openSkinPicker(sysId){
+  if(!sysId)return;
+  skinModalSysId=sysId;skinPendingData=consoleSkins[sysId]?{...consoleSkins[sysId]}:null;
+  const sys=getSys(sysId);
+  document.getElementById('skin-modal-name').textContent=sys.f;
+  const cur=consoleSkins[sysId];
+  // Build presets
+  document.getElementById('skin-presets').innerHTML=SKIN_PRESETS.map(p=>`
+    <div class="skin-preset ${cur?.type==='preset'&&cur.id===p.id?'active':''}" 
+         style="background:${p.thumb}" onclick="selectSkinPreset('${p.id}')">
+      <div class="skin-preset-lbl">${p.label}</div>
+    </div>`).join('');
+  // Preview
+  if(cur?.type==='image'&&cur.data){
+    const pv=document.getElementById('skin-preview');
+    document.getElementById('skin-preview-img').src=cur.data;
+    pv.classList.add('on');
+    skinPendingData={type:'image',data:cur.data};
+  }else{
+    document.getElementById('skin-preview').classList.remove('on');
+    document.getElementById('skin-preview-img').src='';
+  }
+  document.getElementById('skin-modal').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+
+function closeSkinModal(){
+  document.getElementById('skin-modal').classList.remove('on');
+  document.body.style.overflow='';
+  skinModalSysId=null;skinPendingData=null;
+}
+
+function selectSkinPreset(id){
+  skinPendingData={type:'preset',id};
+  document.querySelectorAll('.skin-preset').forEach(el=>el.classList.toggle('active',el.onclick?.toString().includes("'"+id+"'")));
+  document.getElementById('skin-preview').classList.remove('on');
+}
+
+document.getElementById('fi-skin').addEventListener('change',function(){
+  if(!this.files[0])return;
+  const file=this.files[0];
+  if(file.size>3*1024*1024){toast('⚠️ الصورة أكبر من 3MB');this.value='';return}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    skinPendingData={type:'image',data:e.target.result};
+    const pv=document.getElementById('skin-preview');
+    document.getElementById('skin-preview-img').src=e.target.result;
+    pv.classList.add('on');
+    // Deselect presets
+    document.querySelectorAll('.skin-preset').forEach(el=>el.classList.remove('active'));
+  };
+  reader.readAsDataURL(file);
+  this.value='';
+});
+
+document.getElementById('skin-preview').addEventListener('click',function(){
+  if(skinPendingData?.type==='image'){skinPendingData=null;this.classList.remove('on');document.getElementById('skin-preview-img').src=''}
+});
+
+function applySkinAndClose(){
+  if(skinPendingData&&skinModalSysId){
+    consoleSkins[skinModalSysId]=skinPendingData;
+    saveSkinsToStorage();
+    applyConsoleSkinToHero(skinModalSysId);
+    toast('✅ تم تطبيق السكن');
+  }
+  closeSkinModal();
+}
+
+function removeSkin(){
+  if(skinModalSysId){
+    delete consoleSkins[skinModalSysId];
+    saveSkinsToStorage();
+    // Restore default
+    const s=getSys(skinModalSysId);
+    document.getElementById('con-hero').style.background=s.grad||s.bg||'var(--bg0)';
+    toast('🗑 تم حذف السكن');
+  }
+  closeSkinModal();
+}
+
+function applyConsoleSkinToHero(sysId){
+  const skin=consoleSkins[sysId];
+  const hero=document.getElementById('con-hero');
+  if(!hero)return;
+  if(!skin){const s=getSys(sysId);hero.style.background=s.grad||s.bg||'var(--bg0)';hero.style.backgroundSize='';return}
+  if(skin.type==='preset'){
+    const p=SKIN_PRESETS.find(x=>x.id===skin.id);
+    if(p)hero.style.background=p.bg;
+  }else if(skin.type==='image'){
+    hero.style.background=`url('${skin.data}') center/cover no-repeat`;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   FREE / HOMEBREW GAMES LOADER
+══════════════════════════════════════════════════════ */
+const FREE_GAMES=[
+  {id:'free_nes_nestest',title:'NES Test ROM',system:'nes',year:2003,genre:'Demo',
+   _free:true,_src:'cloud',size:24592,
+   url:'https://raw.githubusercontent.com/christopherpow/nes-test-roms/master/other/nestest.nes',
+   file:'nestest.nes',ext:'.nes'},
+  {id:'free_gb_acid2',title:'DMG ACID2',system:'gb',year:2020,genre:'Demo',
+   _free:true,_src:'cloud',size:16384,
+   url:'https://raw.githubusercontent.com/mattcurrie/dmg-acid2/master/build/dmg-acid2.gb',
+   file:'dmg-acid2.gb',ext:'.gb'},
+  {id:'free_gba_acid2',title:'GBA ACID2',system:'gba',year:2020,genre:'Demo',
+   _free:true,_src:'cloud',size:16384,
+   url:'https://raw.githubusercontent.com/mattcurrie/cgb-acid2/master/build/cgb-acid2.gb',
+   file:'cgb-acid2.gb',ext:'.gb'},
+  {id:'free_nes_alter',title:'Alter Ego (NES)',system:'nes',year:2010,genre:'Puzzle',
+   _free:true,_src:'cloud',size:40960,
+   url:'https://archive.org/download/alter-ego-nes/alter-ego.nes',
+   file:'alter-ego.nes',ext:'.nes'},
+  {id:'free_gb_dangan',title:'Dangan (GB)',system:'gb',year:2019,genre:'Action',
+   _free:true,_src:'cloud',size:32768,
+   url:'https://archive.org/download/gb-homebrew-dangan/dangan.gb',
+   file:'dangan.gb',ext:'.gb'},
+];
+
+
+async function loadFreeGames(){
+  const btn=document.getElementById('free-load-btn');
+  if(btn){btn.textContent='⏳';btn.disabled=true}
+  if(!freeGamesLoaded){
+    // Add free games that aren't already in GAMES list
+    const existIds=new Set(GAMES.map(g=>g.id));
+    FREE_GAMES.forEach(g=>{
+      if(!existIds.has(g.id))GAMES.push(g);
+    });
+    freeGamesLoaded=true;
+  }
+  renderGrid('free-grid',GAMES.filter(g=>g._free));
+  if(btn){btn.textContent='✅';setTimeout(()=>{btn.textContent='تحديث';btn.disabled=false},2000)}
+  toast('🎮 '+FREE_GAMES.length+' لعبة تجريبية');
+  refreshAll();
+}
+
+// Free games use game.url directly (handled in getRomUrl below)
+
+function clearAllSkins(){
+  if(!confirm('مسح كل سكنات الكونسولات؟'))return;
+  consoleSkins={};
+  saveSkinsToStorage();
+  toast('🗑 تم مسح كل السكنات');
+}
+
+</script>
+</body>
+</html>
