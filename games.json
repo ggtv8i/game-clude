@@ -1,0 +1,33 @@
+{
+  "_comment": [
+    "هذا الملف يُولَّد تلقائياً بواسطة server.js/server.py من مجلد roms/",
+    "يمكنك تعديله يدوياً لإضافة بيانات إضافية مثل السنة والغلاف والتصنيف",
+    "حقل id اختياري — إذا لم تذكره، يُولَّد تلقائياً من اسم الملف + النظام"
+  ],
+  "games": [
+    {
+      "file"  : "Mario Kart 64 (USA).z64",
+      "title" : "Super kart",
+      "system": "n64",
+      "size"  : 40976,
+      "year"  : "1985",
+      "genre" : "Platform"
+    },
+    {
+      "file"  : "The Legend of Zelda.nes",
+      "title" : "The Legend of Zelda",
+      "system": "nes",
+      "size"  : 131072,
+      "year"  : "1986",
+      "genre" : "Action-Adventure"
+    },
+    {
+      "file"  : "Sonic the Hedgehog.md",
+      "title" : "Sonic the Hedgehog",
+      "system": "md",
+      "size"  : 524288,
+      "year"  : "1991",
+      "genre" : "Platform"
+    }
+  ]
+}
