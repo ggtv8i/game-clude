@@ -1,6 +1,0 @@
-include:
-  - roms/
-exclude:
-  - vendor/
-  - .bundle/
-  - .sass-cache/
